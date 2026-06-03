@@ -1,0 +1,19 @@
+name: alignspace
+services:
+  - name: frontend
+    source_dir: frontend
+    dockerfile_path: frontend/Dockerfile
+    http_port: 80
+    health_check:
+      http_path: /
+
+  - name: backend
+    source_dir: backend
+    dockerfile_path: backend/Dockerfile
+    http_port: 8000
+    health_check:
+      http_path: /health   # make sure your backend has this route
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${{ DATABASE_URL }}
