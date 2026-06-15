@@ -3,11 +3,20 @@ AGENT 4 — Selection Assembly.
 
 Given a chosen direction + the client profile, build a complete material
 package: pick a concrete product for every category, compute quantities from
-room size, price it, and attach a confidence score. Low-confidence picks get
-flagged for the designer to review (the "human-reviewed AI" principle).
+room size, price it, and attach a confidence score. Picks that need a human
+eye get flagged for the designer (the "human-reviewed AI" principle).
 
-Note: room_sqft is passed in explicitly (not held in module state) so the
-function is pure and safe to call concurrently from the FastAPI server.
+How a product is chosen
+-----------------------
+Each product is tagged with style words. We score a product by the client's
+*weighted* affinity for those tags (a style they care about a lot counts more
+than one they barely mentioned), then anchor to the budget band's tier: on a
+"medium" budget we default to standard-tier unless a product's style fit is
+strong enough to justify moving a tier. This stops weak, generic tags (like
+"clean") from quietly dragging every pick down to the cheapest option.
+
+room_sqft is passed in explicitly (not held in module state) so the function is
+pure and safe to call concurrently from the FastAPI server.
 """
 
 from __future__ import annotations
@@ -15,8 +24,22 @@ from __future__ import annotations
 from ..models import ClientProfile, DesignDirection, LineItem, MaterialPackage
 from ..presets import CATALOG, BAND_TIER, TILE_WASTE, WALL_AREA_FACTOR
 
-CONFIDENCE_FLAG_THRESHOLD = 0.45  # below this, ask a human
 DEFAULT_ROOM_SQFT = 40.0
+
+# How hard the budget band pulls picks toward its tier. Higher = the band's tier
+# is a stronger default; a pricier/cheaper product only wins if its style fit
+# beats the tier-appropriate one by more than this per tier-step.
+TIER_ANCHOR = 0.40
+
+# Below this weighted style affinity, the catalog just doesn't have a good match
+# for this client -> flag for the designer.
+WEAK_MATCH_THRESHOLD = 0.20
+
+# Direction tags are an explicit client choice, so they count strongly when
+# scoring products (merged into the style weights at this strength).
+DIRECTION_TAG_WEIGHT = 0.9
+
+_TIER_RANK = {"budget": 0, "standard": 1, "premium": 2}
 
 
 def _quantity(category: str, room_sqft: float) -> float:
@@ -28,29 +51,50 @@ def _quantity(category: str, room_sqft: float) -> float:
     return 1.0  # everything else is a single fixture/job
 
 
-def _pick_option(category: str, want_tags: set[str], preferred_tier: str) -> tuple[dict, float]:
+def _style_weights(direction: DesignDirection, profile: ClientProfile) -> dict[str, float]:
+    """Merge the client's weighted styles with the chosen direction's tags."""
+    weights = dict(profile.styles)
+    for tag in direction.style_tags:
+        weights[tag] = max(weights.get(tag, 0.0), DIRECTION_TAG_WEIGHT)
+    return weights
+
+
+def _affinity(option: dict, style_weights: dict[str, float]) -> float:
+    """Average of the client's weight for each of the product's style tags (0..1)."""
+    tags = option["tags"]
+    if not tags:
+        return 0.0
+    return sum(style_weights.get(t, 0.0) for t in tags) / len(tags)
+
+
+def _pick_option(category: str, style_weights: dict[str, float], preferred_tier: str) -> tuple[dict, float]:
     """
     Choose the best product in a category.
 
-    Score = style-tag overlap with the direction/profile, with a penalty for
-    drifting away from the budget band's preferred tier. Returns (option, confidence).
+    Selection score = style affinity - TIER_ANCHOR * (tiers away from the band).
+    Returns (option, style_affinity) — note we return the *affinity*, not the
+    tier-penalised score, so confidence reflects style fit, not the penalty.
     """
-    spec = CATALOG[category]
-    tier_rank = {"budget": 0, "standard": 1, "premium": 2}
-    pref = tier_rank[preferred_tier]
+    pref = _TIER_RANK[preferred_tier]
+    best, best_pick_score, best_affinity = None, -99.0, 0.0
 
-    best, best_score = None, -1.0
-    for opt in spec["options"]:
-        overlap = len(want_tags & set(opt["tags"]))
-        tag_score = overlap / max(len(opt["tags"]), 1)
-        tier_penalty = 0.18 * abs(tier_rank[opt["tier"]] - pref)
-        score = tag_score - tier_penalty
-        if score > best_score:
-            best, best_score = opt, score
+    for opt in CATALOG[category]["options"]:
+        affinity = _affinity(opt, style_weights)
+        pick_score = affinity - TIER_ANCHOR * abs(_TIER_RANK[opt["tier"]] - pref)
+        if pick_score > best_pick_score:
+            best, best_pick_score, best_affinity = opt, pick_score, affinity
 
-    # Squash to a readable 0..1 confidence.
-    confidence = round(max(0.0, min(1.0, 0.5 + best_score)), 2)
-    return best, confidence
+    return best, round(best_affinity, 2)
+
+
+def _confidence(affinity: float, tier: str, preferred_tier: str) -> float:
+    """
+    Readable 0..1 confidence. Baseline reflects tier-appropriateness (are we on
+    the band's tier?), plus up to +0.45 for style fit.
+    """
+    on_tier = _TIER_RANK[tier] == _TIER_RANK[preferred_tier]
+    baseline = 0.55 if on_tier else 0.4
+    return round(min(1.0, baseline + 0.45 * affinity), 2)
 
 
 def assemble_package(
@@ -58,24 +102,28 @@ def assemble_package(
     profile: ClientProfile,
     room_sqft: float = DEFAULT_ROOM_SQFT,
 ) -> MaterialPackage:
-    want_tags = set(direction.style_tags) | set(profile.styles.keys())
+    style_weights = _style_weights(direction, profile)
     preferred_tier = BAND_TIER.get(profile.budget_band, "standard")
     room_sqft = max(float(room_sqft), 1.0)
 
     items: list[LineItem] = []
     for category, spec in CATALOG.items():
-        opt, confidence = _pick_option(category, want_tags, preferred_tier)
+        opt, affinity = _pick_option(category, style_weights, preferred_tier)
         qty = _quantity(category, room_sqft)
         subtotal = round(opt["unit_price"] * qty, 2)
+        confidence = _confidence(affinity, opt["tier"], preferred_tier)
 
-        flagged = confidence < CONFIDENCE_FLAG_THRESHOLD
-        reason = None
-        if flagged:
-            reason = f"Weak style match for {category}; confirm with client."
-        elif opt["tier"] != preferred_tier:
+        # Flag only genuine concerns: a weak style match, or a pricier-than-band
+        # pick (a cost surprise the designer should confirm). A cheaper-than-band
+        # pick saves money and isn't flagged.
+        flagged, reason = False, None
+        if affinity < WEAK_MATCH_THRESHOLD:
             flagged = True
-            reason = (f"{opt['tier'].title()} pick in a '{profile.budget_band}' "
-                      f"budget — verify the client is OK with the cost.")
+            reason = f"Limited style match for {category} in the catalog; designer to confirm."
+        elif _TIER_RANK[opt["tier"]] > _TIER_RANK[preferred_tier]:
+            flagged = True
+            reason = (f"{opt['tier'].title()} pick above the '{profile.budget_band}' "
+                      f"budget tier — confirm the cost with the client.")
 
         items.append(LineItem(
             category=category, product_name=opt["name"], tier=opt["tier"],

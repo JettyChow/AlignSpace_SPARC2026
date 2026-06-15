@@ -59,20 +59,39 @@ def test_budget_within_for_medium_band():
     assert b.estimated_total <= BUDGET_CEILINGS["medium"]
 
 
-def test_budget_over_triggers_swaps_for_low_band_premium_taste():
-    # Low budget but luxe/premium-leaning taste should blow the ceiling and
-    # produce cost-reduction swaps.
+def test_budget_over_triggers_swaps_and_fits_after():
+    # A luxe-leaning direction (Organic Spa) in a generous room on a medium
+    # budget legitimately pulls several picks to premium and exceeds the ceiling.
+    # That must trigger cost-reduction swaps that bring the total back under.
     brief = _brief(
-        budget_band="low",
-        style_chips=["luxe", "premium"],
-        chat_text="high-end luxury spa, marble, brass, top of the line everything",
+        room_sqft=100,
+        budget_band="medium",
+        style_chips=["warm", "natural"],
+        chat_text="warm natural spa, generous primary bath, wood and stone, walk-in rain shower",
     )
     _, _, deliverable = run_pipeline(brief, chosen_direction_key="organic_spa")
     b = deliverable.budget
-    if b.status == "over":
-        assert b.overage > 0
-        assert b.suggested_swaps, "over-budget package should suggest swaps"
-        assert b.adjusted_total <= b.estimated_total
+    assert b.status == "over", "this scenario is designed to exceed the ceiling"
+    assert b.overage > 0
+    assert b.suggested_swaps, "over-budget package must suggest swaps"
+    assert b.adjusted_total < b.estimated_total, "swaps must reduce the total"
+    assert b.adjusted_total <= b.band_ceiling, "swaps should bring it under the ceiling"
+
+
+def test_over_budget_flags_are_cost_warnings():
+    # When picks land above the budget tier, each such line should be flagged
+    # with a cost-confirmation reason (not generic noise).
+    brief = _brief(
+        room_sqft=100,
+        budget_band="medium",
+        style_chips=["warm", "natural"],
+        chat_text="warm natural spa, generous primary bath, wood and stone, walk-in rain shower",
+    )
+    _, _, deliverable = run_pipeline(brief, chosen_direction_key="organic_spa")
+    premium_lines = [i for i in deliverable.package.line_items if i.tier == "premium"]
+    assert premium_lines, "expected some premium picks in this scenario"
+    for line in premium_lines:
+        assert line.flagged and "budget tier" in (line.flag_reason or "")
 
 
 def test_deliverable_has_markdown_and_round_trips_to_dict():
@@ -92,3 +111,38 @@ def test_room_size_changes_tile_quantity_no_shared_state():
     small_floor = next(i for i in small.package.line_items if i.category == "floor_tile")
     large_floor = next(i for i in large.package.line_items if i.category == "floor_tile")
     assert large_floor.quantity > small_floor.quantity
+
+
+# --- Regression guards for the Claude-profile tier/score bug -----------------
+
+def _claude_like_profile():
+    """Mimics a rich profile from Claude intent extraction (many weighted styles)."""
+    from pipeline import DesignDirection
+    from pipeline.agents.assembly import assemble_package
+    from pipeline.agents.matching import match_directions
+    from pipeline.models import ClientProfile
+    profile = ClientProfile(
+        styles={"warm": 1.0, "calm": 1.0, "minimal": 0.94, "natural": 0.94,
+                "functional": 0.89, "clean": 0.83, "light": 0.78, "classic": 0.72},
+        functions=["storage", "walk-in shower", "easy cleaning"],
+        budget_band="medium", extraction_source="claude",
+    )
+    return profile, match_directions, assemble_package
+
+
+def test_rich_profile_is_not_score_diluted():
+    """A detailed (many-style) profile should still score its best fit highly."""
+    profile, match_directions, _ = _claude_like_profile()
+    directions = match_directions(profile)
+    assert directions[0].match_score >= 0.85, "best direction should score high, not be diluted"
+
+
+def test_medium_budget_picks_standard_not_all_budget():
+    """The core bug: a medium budget must not collapse to all-budget-tier picks."""
+    profile, match_directions, assemble_package = _claude_like_profile()
+    top = match_directions(profile)[0]
+    pkg = assemble_package(top, profile, room_sqft=45)
+    tiers = [i.tier for i in pkg.line_items]
+    assert tiers.count("budget") <= 1, f"expected mostly standard tier, got {tiers}"
+    # And we shouldn't be flagging nearly everything anymore.
+    assert sum(1 for i in pkg.line_items if i.flagged) <= 2

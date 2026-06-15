@@ -136,7 +136,9 @@ CATALOG = {
 
 # Materials-only budget ceilings per band (USD) for a small bathroom.
 # Ranges, not quotes — the designer sets the real number (per team discussion).
-BUDGET_CEILINGS = {"low": 4500.0, "medium": 9000.0, "high": 18000.0}
+# Tuned so the bands are meaningful: a roomy bath or off-tier picks can exceed
+# the ceiling and trip the budget agent's swap suggestions.
+BUDGET_CEILINGS = {"low": 2200.0, "medium": 4500.0, "high": 8500.0}
 
 # Which tier each band prefers by default.
 BAND_TIER = {"low": "budget", "medium": "standard", "high": "premium"}

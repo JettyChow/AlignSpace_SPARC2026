@@ -36,8 +36,8 @@
       "calm"
     ],
     "match_score": 0.83,
-    "est_low": 4050.0,
-    "est_high": 7650.0
+    "est_low": 2020.0,
+    "est_high": 3820.0
   },
   "package": {
     "direction_key": "japandi",
@@ -51,7 +51,7 @@
         "unit_price": 9.0,
         "quantity": 49.5,
         "subtotal": 445.5,
-        "confidence": 1.0,
+        "confidence": 0.83,
         "flagged": false,
         "flag_reason": null
       },
@@ -63,7 +63,7 @@
         "unit_price": 11.0,
         "quantity": 59.4,
         "subtotal": 653.4,
-        "confidence": 1.0,
+        "confidence": 0.75,
         "flagged": false,
         "flag_reason": null
       },
@@ -75,33 +75,33 @@
         "unit_price": 850.0,
         "quantity": 1.0,
         "subtotal": 850.0,
-        "confidence": 1.0,
+        "confidence": 0.83,
         "flagged": false,
         "flag_reason": null
       },
       {
         "category": "faucet",
-        "product_name": "Brushed brass faucet",
-        "tier": "premium",
+        "product_name": "Matte black faucet",
+        "tier": "standard",
         "unit": "each",
-        "unit_price": 480.0,
+        "unit_price": 220.0,
         "quantity": 1.0,
-        "subtotal": 480.0,
-        "confidence": 0.99,
+        "subtotal": 220.0,
+        "confidence": 0.6,
         "flagged": true,
-        "flag_reason": "Premium pick in a 'medium' budget \u2014 verify the client is OK with the cost."
+        "flag_reason": "Limited style match for faucet in the catalog; designer to confirm."
       },
       {
         "category": "mirror",
-        "product_name": "Frameless rectangular",
-        "tier": "budget",
+        "product_name": "Round black-frame mirror",
+        "tier": "standard",
         "unit": "each",
-        "unit_price": 80.0,
+        "unit_price": 190.0,
         "quantity": 1.0,
-        "subtotal": 80.0,
-        "confidence": 0.99,
-        "flagged": true,
-        "flag_reason": "Budget pick in a 'medium' budget \u2014 verify the client is OK with the cost."
+        "subtotal": 190.0,
+        "confidence": 0.7,
+        "flagged": false,
+        "flag_reason": null
       },
       {
         "category": "lighting",
@@ -111,7 +111,7 @@
         "unit_price": 180.0,
         "quantity": 1.0,
         "subtotal": 180.0,
-        "confidence": 1.0,
+        "confidence": 0.88,
         "flagged": false,
         "flag_reason": null
       },
@@ -123,7 +123,7 @@
         "unit_price": 380.0,
         "quantity": 1.0,
         "subtotal": 380.0,
-        "confidence": 1.0,
+        "confidence": 0.75,
         "flagged": false,
         "flag_reason": null
       },
@@ -135,7 +135,7 @@
         "unit_price": 520.0,
         "quantity": 1.0,
         "subtotal": 520.0,
-        "confidence": 1.0,
+        "confidence": 0.73,
         "flagged": false,
         "flag_reason": null
       },
@@ -147,22 +147,22 @@
         "unit_price": 220.0,
         "quantity": 1.0,
         "subtotal": 220.0,
-        "confidence": 1.0,
+        "confidence": 0.83,
         "flagged": false,
         "flag_reason": null
       }
     ],
-    "estimated_total": 3808.9
+    "estimated_total": 3658.9
   },
   "budget": {
     "budget_band": "medium",
-    "band_ceiling": 9000.0,
-    "estimated_total": 3808.9,
+    "band_ceiling": 4500.0,
+    "estimated_total": 3658.9,
     "status": "within",
     "overage": 0.0,
     "suggested_swaps": [],
-    "adjusted_total": 3808.9
+    "adjusted_total": 3658.9
   },
   "scope_summary": "Full bathroom renovation in a Japandi direction. Client leans warm, minimal, natural. Functional priorities: more storage, walk-in shower, bathtub, easy to clean. Budget band: medium. All selections below are starting points for the designer to confirm and quote.",
-  "markdown": "# Renovation Brief \u2014 Project proj_001\n\n**Direction:** Japandi \u2014 Japanese minimalism meets Scandinavian warmth; natural, calm, uncluttered.\n**Style fit:** 83%  \n**Intent source:** rule_based\n\n## Scope\nFull bathroom renovation in a Japandi direction. Client leans warm, minimal, natural. Functional priorities: more storage, walk-in shower, bathtub, easy to clean. Budget band: medium. All selections below are starting points for the designer to confirm and quote.\n\n## Selection Sheet\n| Item | Product | Tier | Qty | Unit $ | Subtotal | Conf. | Review |\n|---|---|---|---:|---:|---:|---:|:--:|\n| Floor Tile | Wood-look plank tile | standard | 49.5 sqft | $9 | $446 | 100% |  |\n| Wall Tile | Large-format matte tile | standard | 59.4 sqft | $11 | $653 | 100% |  |\n| Vanity | Oak floating vanity | standard | 1 each | $850 | $850 | 100% |  |\n| Faucet | Brushed brass faucet | premium | 1 each | $480 | $480 | 99% | \u26a0\ufe0f |\n| Mirror | Frameless rectangular | budget | 1 each | $80 | $80 | 99% | \u26a0\ufe0f |\n| Lighting | Warm sconce pair | standard | 1 each | $180 | $180 | 100% |  |\n| Toilet | One-piece skirted | standard | 1 each | $380 | $380 | 100% |  |\n| Shower Set | Matte rain shower set | standard | 1 each | $520 | $520 | 100% |  |\n| Paint | Low-sheen designer paint | standard | 1 each | $220 | $220 | 100% |  |\n| | | | | | **$3,809** | | |\n\n## Budget\n- Band ceiling (medium): **$9,000**\n- Estimated total: **$3,809** \u2014 _within_\n\n## Flagged for designer review\n- **Faucet** \u2014 Premium pick in a 'medium' budget \u2014 verify the client is OK with the cost.\n- **Mirror** \u2014 Budget pick in a 'medium' budget \u2014 verify the client is OK with the cost.\n\n_Estimates are materials-only ranges, not a final quote. Designer confirms quantities, labor, and final pricing._"
+  "markdown": "# Renovation Brief \u2014 Project proj_001\n\n**Direction:** Japandi \u2014 Japanese minimalism meets Scandinavian warmth; natural, calm, uncluttered.\n**Style fit:** 83%  \n**Intent source:** rule_based\n\n## Scope\nFull bathroom renovation in a Japandi direction. Client leans warm, minimal, natural. Functional priorities: more storage, walk-in shower, bathtub, easy to clean. Budget band: medium. All selections below are starting points for the designer to confirm and quote.\n\n## Selection Sheet\n| Item | Product | Tier | Qty | Unit $ | Subtotal | Conf. | Review |\n|---|---|---|---:|---:|---:|---:|:--:|\n| Floor Tile | Wood-look plank tile | standard | 49.5 sqft | $9 | $446 | 83% |  |\n| Wall Tile | Large-format matte tile | standard | 59.4 sqft | $11 | $653 | 75% |  |\n| Vanity | Oak floating vanity | standard | 1 each | $850 | $850 | 83% |  |\n| Faucet | Matte black faucet | standard | 1 each | $220 | $220 | 60% | \u26a0\ufe0f |\n| Mirror | Round black-frame mirror | standard | 1 each | $190 | $190 | 70% |  |\n| Lighting | Warm sconce pair | standard | 1 each | $180 | $180 | 88% |  |\n| Toilet | One-piece skirted | standard | 1 each | $380 | $380 | 75% |  |\n| Shower Set | Matte rain shower set | standard | 1 each | $520 | $520 | 73% |  |\n| Paint | Low-sheen designer paint | standard | 1 each | $220 | $220 | 83% |  |\n| | | | | | **$3,659** | | |\n\n## Budget\n- Band ceiling (medium): **$4,500**\n- Estimated total: **$3,659** \u2014 _within_\n\n## Flagged for designer review\n- **Faucet** \u2014 Limited style match for faucet in the catalog; designer to confirm.\n\n_Estimates are materials-only ranges, not a final quote. Designer confirms quantities, labor, and final pricing._"
 }
