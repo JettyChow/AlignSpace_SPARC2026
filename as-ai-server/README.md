@@ -1,21 +1,14 @@
 # AlignSpace — AI Pipeline service (`as-ai-server`)
 
-**Owner:** Engineer 3 (AI & Agentic Pipeline) · **Status:** running end to end, verified on the live Claude API · 17 tests passing
+**Owner:** Engineer 3 (AI & Agentic Pipeline)
 
 This service takes a client's messy renovation input (chat + preference chips +
 budget + room size) and turns it into a **structured, priced, designer-ready
-renovation brief**. It's the "brain" of AlignSpace, exposed as a FastAPI service
-the main backend calls.
+renovation brief**. It's the "brain" of AlignSpace.
 
-It runs **fully offline** (deterministic fallback — no key, DB, or Redis needed)
-and uses **Claude automatically** the moment an API key is present.
-
-### Jump to your part
-- **Running it / reviewing the PR** → [Quick start](#quick-start)
-- **Backend (Adam):** the API you call → [API contract](#api-the-contract-for-the-backend)
-- **Frontend (Laura):** the JSON you render → [`/intake` + sample outputs](#api-the-contract-for-the-backend); material list swaps into `src/pipeline/presets.py`
-- **Infra (Sam):** `Dockerfile` + `/health` + tests → [Quick start](#quick-start); CI red right now is the missing frontend, not the backend
-- **One team decision** → [lean now, LangGraph later](#architecture-note-for-the-team-lean-now-langgraph-ready-later)
+It runs **fully offline today** — no API key, no Postgres, no Redis, no Celery
+needed to see the whole flow work — and lights up Claude automatically the
+moment an API key is present.
 
 ---
 
@@ -23,35 +16,31 @@ and uses **Claude automatically** the moment an API key is present.
 
 ```bash
 cd as-ai-server
+pip install -r requirements.txt
 
-# Fast path — just the packages this service uses (seconds):
-pip install fastapi uvicorn pydantic anthropic pytest httpx
-# Full team environment (also pulls heavier ML libs for the future memory agent; slower):
-#   pip install -r requirements.txt
+# 1) See the whole pipeline run end-to-end (no key needed):
+python demo.py
 
-python demo.py                                         # watch the whole flow run
-pytest                                                 # run the 17-test suite
-uvicorn main:app --app-dir src --reload --port 8000    # run the API, docs at /docs
+# 2) Run the test suite (what CI runs):
+pytest
+
+# 3) Run the API service:
+uvicorn main:app --app-dir src --reload --port 8000
+#   then open http://localhost:8000/docs  (interactive Swagger UI)
 ```
-
-**What a correct run looks like:** for the sample "calm spa-like, warm, minimal"
-brief, `Japandi` ranks #1 (~90%+), every pick is `standard` tier, and the budget
-reads `within`. The over-budget sample (a roomy, luxe-leaning project) flips to
-`over` and lists cheaper swaps. If you see those, all five agents are working.
 
 ### Turning on Claude
 
-Intent extraction uses a deterministic keyword fallback by default, so demos and
-CI never need a key. To use the real model, set the key in your shell before
-running (the reliable way — don't commit it anywhere):
+Intent extraction uses a deterministic keyword fallback by default so demos and
+CI never break. To use the real model, set your key (don't commit it):
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-python demo.py        # intent extraction now routes through Claude
+cp .env.example .env        # then paste your key into .env
+export ANTHROPIC_API_KEY=sk-ant-...    # or load the .env in your shell
+python demo.py              # now intent extraction routes through Claude
 ```
 
-`.env.example` documents the variable name; copy it to `.env` to keep your key
-handy. `GET /health` reports which path is live (`"intent_source": "claude"` vs
+`GET /health` reports which path is active (`"intent_source": "claude"` vs
 `"offline_fallback"`).
 
 ---
@@ -90,8 +79,8 @@ The flow is **two-phase**, matching the product:
 > before Preset Matching so it can be added later without touching other agents.
 
 Each stage fires a progress event through an `on_stage(stage, message)`
-callback — the hook the backend wires to Redis pub/sub so the designer dashboard
-can show "Extracting intent… / Matching presets…" live over Socket.io.
+callback — that's the hook the backend wires to Redis pub/sub so the designer
+dashboard can show "Extracting intent… / Matching presets…" live over Socket.io.
 
 ---
 
@@ -120,9 +109,7 @@ curl -X POST http://localhost:8000/intake -H "Content-Type: application/json" -d
 ```
 
 Request/response shapes live in `src/api_schemas.py` (wire models) and
-`src/pipeline/models.py` (internal contracts). Two example responses are checked
-in: `sample_deliverable.md` (within budget) and `sample_deliverable_over_budget.md`
-(over budget + swaps). Full interactive docs at `/docs`.
+`src/pipeline/models.py` (internal contracts). Full interactive docs at `/docs`.
 
 ---
 
@@ -135,16 +122,13 @@ in: `sample_deliverable.md` (within budget) and `sample_deliverable_over_budget.
 | **Infra/Data (Eng 4)** | Maps `models.py` dataclasses → Postgres tables (shapes line up 1:1). |
 | **Real-time (Eng 1+4)** | Subscribes to the `on_stage` events for Socket.io stage updates. |
 
-This service is meant to **run alongside** the main backend and be called by it —
-it is not a replacement for the backend's own routes (auth, projects, billing).
-
 ---
 
 ## Architecture note for the team: lean now, LangGraph-ready later
 
 `Architecture.md` describes a full LangGraph + Celery + Redis + pgvector +
-OpenAI-embeddings stack. That's the **target**. The MVP is built leaner, for two
-reasons:
+OpenAI-embeddings stack. That's the **target**. I built the MVP leaner first,
+for two reasons:
 
 1. The repo's own `requirements.txt` is already lean — `anthropic`, `fastapi`,
    `chromadb`; **no** `langgraph`, `celery`, `redis`, or `pgvector` yet.
@@ -182,31 +166,28 @@ as-ai-server/
         budget.py          # [5] budget check + cheaper-swap alternatives
         document.py        # [6] assemble the deliverable (markdown/JSON)
   tests/
-    conftest.py            # forces offline extraction so tests are hermetic
-    test_pipeline.py       # core logic, incl. regression guards (offline)
+    test_pipeline.py       # core logic (offline)
     test_api.py            # HTTP contract via TestClient
   sample_deliverable.md            # example output: within budget (Japandi)
   sample_deliverable_over_budget.md# example output: over budget + swaps
 ```
 
-The test suite never calls the live API (a fixture strips the key), so it runs
-the same fast, deterministic way on every machine and in CI. The Claude path is
-validated by hand via `python demo.py`.
-
 ---
 
-## Status & next steps
+## Status vs. schedule
 
-Covers the Engineer 3 line through **Week 3**: agent contracts, the working
-pipeline, and the **intent extraction agent** — now running end to end as a
-FastAPI service, verified on the live model, with tests and a Dockerfile that fit
-the repo.
+Covers the Engineer 3 line through **Week 3**: agent schemas + pipeline
+contracts (Wk1), a working mock pipeline (Wk2), and the **intent extraction
+agent** (Wk3) — plus working first passes at matching, assembly, budget, and
+document so the full intake flow runs end to end, now exposed as a FastAPI
+service with tests and a Dockerfile that fit the repo.
 
-**Next:** wire `on_stage` to real Redis pub/sub once Eng 4's Redis is up; replace
-the seed catalog with Laura's real per-firm material list; (post-MVP) add the
-memory-lookup agent.
+**Next:** wire `on_stage` to real Redis pub/sub once Eng 4's Redis is up;
+replace the seed catalog with Laura's real per-firm material list; (post-MVP)
+add the memory-lookup agent.
 
-**Pricing caveat:** all cost numbers are **materials-only illustrative ranges,
-not quotes**. Price per item, quantities from room size, designer sets the final
-number (per the team's intake discussion). Seed prices are placeholders for the
-real material list.
+### Pricing caveat
+All cost numbers are **materials-only illustrative ranges, not quotes**. The
+unit-price-driven approach (price per item, quantities from room size, designer
+sets the final number) follows the team's intake discussion. Seed catalog prices
+are placeholders to be swapped for the real material list.
