@@ -8,7 +8,7 @@ import { PrimaryButton } from '@/components/Buttons';
 import Field from '@/components/Field';
 import Icon from '@/components/Icon';
 
-export default function LoginScreen({ role, onLogin, onBack }) {
+export default function LoginScreen({ role, onLogin, onBack, onSignup }) {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -50,7 +50,7 @@ export default function LoginScreen({ role, onLogin, onBack }) {
             <FloralDivider width={180} color="rgba(255,255,255,0.35)" />
           </div>
           <div style={{ textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
-            {"Don't have an account? "}<span style={{ color: 'var(--champagne)', fontWeight: 600, cursor: 'pointer' }}>Sign up</span>
+            {"Don't have an account? "}<span onClick={onSignup} style={{ color: 'var(--champagne)', fontWeight: 600, cursor: 'pointer' }}>Sign up</span>
           </div>
         </div>
 

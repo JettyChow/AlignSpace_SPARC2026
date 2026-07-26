@@ -9,6 +9,7 @@ import Icon from '@/components/Icon';
 const SCREENS = [
   { id: 'role',          path: '/role',          group: 'Onboarding',  label: 'Role select' },
   { id: 'login',         path: '/login',         group: 'Onboarding',  label: 'Login' },
+  { id: 'signup',        path: '/signup',        group: 'Onboarding',  label: 'Sign up' },
   { id: 'projects',      path: '/projects',      group: 'Designer',    label: 'Projects' },
   { id: 'materials',     path: '/projects/0',    group: 'Designer',    label: 'Material list' },
   { id: 'entry',         path: '/entry',         group: 'Guided flow', label: 'AI entry' },
@@ -23,7 +24,6 @@ const SCREENS = [
   { id: 'handoff',       path: '/handoff',       group: 'Decisions',   label: 'Designer handoff' },
   { id: 'profile',       path: '/profile',       group: 'Supporting',  label: 'Profile' },
   { id: 'notifications', path: '/notifications', group: 'Supporting',  label: 'Notifications' },
-  { id: 'saved',         path: '/saved',         group: 'Supporting',  label: 'Saved' },
   { id: 'history',       path: '/history',       group: 'Supporting',  label: 'History' },
 ];
 

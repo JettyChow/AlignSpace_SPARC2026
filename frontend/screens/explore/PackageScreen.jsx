@@ -16,34 +16,34 @@ const CATS = [
 
 const CAT_ITEMS = {
   materials: [
-    { name: 'Calacatta Quartz',       desc: 'Soft white base with subtle veining. Durable and timeless.',  tone: 'travertine' },
-    { name: 'Zellige backsplash tile', desc: 'Warm ivory handmade tile with natural variation.',             tone: 'warmwhite' },
-    { name: 'Brushed brass faucet',   desc: 'Elegant brushed brass finish. Modern and warm.',               tone: 'sand' },
-    { name: 'White oak cabinetry',    desc: 'Rift-sawn white oak with a natural matte finish.',             tone: 'oak' },
+    { item_id: 1, item_name: 'Calacatta Quartz',       desc: 'Soft white base with subtle veining. Durable and timeless.',  tone: 'travertine', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
+    { item_id: 2, item_name: 'Zellige backsplash tile', desc: 'Warm ivory handmade tile with natural variation.',             tone: 'warmwhite', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
+    { item_id: 3, item_name: 'Brushed brass faucet',   desc: 'Elegant brushed brass finish. Modern and warm.',               tone: 'sand', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
+    { item_id: 4, item_name: 'White oak cabinetry',    desc: 'Rift-sawn white oak with a natural matte finish.',             tone: 'oak', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
   ],
   fixtures: [
-    { name: 'Brushed brass faucet set', desc: 'Faucet, shower set and hardware in a warm brass tone.', tone: 'sand' },
-    { name: 'Rain shower head',          desc: 'Ceiling-mounted in soft matte brass.',                  tone: 'oak' },
-    { name: 'Concealed linear drain',    desc: 'Tile-in profile in brushed stainless.',                 tone: 'stone' },
-    { name: 'Matte brass towel bar',     desc: 'Minimal hardware to match the faucet set.',             tone: 'sand' },
+    { item_id: 5, item_name: 'Brushed brass faucet set', desc: 'Faucet, shower set and hardware in a warm brass tone.', tone: 'sand', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
+    { item_id: 6, item_name: 'Rain shower head',          desc: 'Ceiling-mounted in soft matte brass.',                  tone: 'oak', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
+    { item_id: 7, item_name: 'Concealed linear drain',    desc: 'Tile-in profile in brushed stainless.',                 tone: 'stone', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
+    { item_id: 8, item_name: 'Matte brass towel bar',     desc: 'Minimal hardware to match the faucet set.',             tone: 'sand', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
   ],
   lighting: [
-    { name: 'Warm LED plan',          desc: '2700K dimmable scheme, softly layered.',         tone: 'warmwhite' },
-    { name: 'Brass wall sconces',     desc: 'A pair with frosted glass globes.',               tone: 'sand' },
-    { name: 'Recessed ceiling spots', desc: 'Trimless, tunable warm white.',                   tone: 'charcoal' },
-    { name: 'Linen pendant shades',   desc: 'Natural linen drum over the island.',             tone: 'warmwhite' },
+    { item_id: 9, item_name: 'Warm LED plan',          desc: '2700K dimmable scheme, softly layered.',         tone: 'warmwhite', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
+    { item_id: 10, item_name: 'Brass wall sconces',     desc: 'A pair with frosted glass globes.',               tone: 'sand', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
+    { item_id: 11, item_name: 'Recessed ceiling spots', desc: 'Trimless, tunable warm white.',                   tone: 'charcoal', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
+    { item_id: 12, item_name: 'Linen pendant shades',   desc: 'Natural linen drum over the island.',             tone: 'warmwhite', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
   ],
   textiles: [
-    { name: 'Belgian linen drapery', desc: 'Sand tone, floor-length and lined.',   tone: 'linen' },
-    { name: 'Wool-blend rug',         desc: 'Hand-loomed in a soft oatmeal.',       tone: 'stone' },
-    { name: 'Bouclé accent cushions', desc: 'Set of four in a warm ecru.',          tone: 'warmwhite' },
-    { name: 'Mohair throw',           desc: 'Lightweight, in a muted clay.',        tone: 'clay' },
+    { item_id: 13, item_name: 'Belgian linen drapery', desc: 'Sand tone, floor-length and lined.',   tone: 'linen', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
+    { item_id: 14, item_name: 'Wool-blend rug',         desc: 'Hand-loomed in a soft oatmeal.',       tone: 'stone', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
+    { item_id: 15, item_name: 'Bouclé accent cushions', desc: 'Set of four in a warm ecru.',          tone: 'warmwhite', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
+    { item_id: 16, item_name: 'Mohair throw',           desc: 'Lightweight, in a muted clay.',        tone: 'clay', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
   ],
   surfaces: [
-    { name: 'Quartzite countertop',  desc: 'Honed finish with soft veining.',            tone: 'travertine' },
-    { name: 'Zellige wall tile',     desc: 'Handmade in a warm ivory glaze.',            tone: 'warmwhite' },
-    { name: 'White oak cabinetry',   desc: 'Rift-cut flat panel, matte finish.',         tone: 'oak' },
-    { name: 'Lime-washed plaster',   desc: 'Hand-troweled in a soft ivory.',             tone: 'warmwhite' },
+    { item_id: 17, item_name: 'Quartzite countertop',  desc: 'Honed finish with soft veining.',            tone: 'travertine', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
+    { item_id: 18, item_name: 'Zellige wall tile',     desc: 'Handmade in a warm ivory glaze.',            tone: 'warmwhite', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
+    { item_id: 19, item_name: 'White oak cabinetry',   desc: 'Rift-cut flat panel, matte finish.',         tone: 'oak', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
+    { item_id: 20, item_name: 'Lime-washed plaster',   desc: 'Hand-troweled in a soft ivory.',             tone: 'warmwhite', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
   ],
 };
 
@@ -109,7 +109,7 @@ function FeaturedCard({ it, onDelete, onSwitch }) {
             <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--success)', display: 'inline-block' }} />
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600, color: '#5a9a4c' }}>In your plan</span>
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 18.5, lineHeight: 1.12, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.015em', marginTop: 10 }}>{it.name}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 18.5, lineHeight: 1.12, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.015em', marginTop: 10 }}>{it.item_name}</div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, lineHeight: 1.4, color: 'var(--fg-2)', marginTop: 7 }}>{it.desc}</div>
           <div style={{ marginTop: 'auto', paddingTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <button
@@ -137,7 +137,7 @@ function MaterialRow({ it, onDelete, onSwitch }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: 9, background: '#fff', border: '1px solid var(--line)', borderRadius: 18, boxShadow: 'var(--shadow-card)' }}>
       <PhotoTile tone={it.tone} height={68} radius={13} style={{ width: 80, flex: 'none' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>{it.name}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--fg-1)', letterSpacing: '-0.01em' }}>{it.item_name}</div>
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, lineHeight: 1.36, color: 'var(--fg-2)', marginTop: 2 }}>{it.desc}</div>
       </div>
       <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
@@ -225,7 +225,7 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
 
         {featured ? (
           <FeaturedCard
-            key={activeCat + featured.name}
+            key={activeCat + featured.item_name}
             it={featured}
             onDelete={() => remove(activeCat, 0)}
             onSwitch={() => list.length > 1 && rotate(activeCat, 0, list.length - 1)}
@@ -244,7 +244,7 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               {rest.map((it, i) => (
                 <MaterialRow
-                  key={it.name}
+                  key={it.item_name}
                   it={it}
                   onSwitch={() => rotate(activeCat, i + 1, 0)}
                   onDelete={() => remove(activeCat, i + 1)}

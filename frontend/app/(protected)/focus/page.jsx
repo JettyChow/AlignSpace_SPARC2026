@@ -10,7 +10,7 @@ export default function FocusPage() {
     <FocusScreen
       onBack={back}
       onContinue={() => go('/package')}
-      onMenu={() => go('/saved')}
+      onMenu={() => go('/history')}
     />
   );
 }

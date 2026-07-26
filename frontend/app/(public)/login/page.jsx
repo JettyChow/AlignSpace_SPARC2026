@@ -13,6 +13,7 @@ export default function LoginPage() {
       role={role}
       onBack={back}
       onLogin={() => go(role === 'designer' ? '/projects' : '/entry')}
+      onSignup={() => go('/signup')}
     />
   );
 }

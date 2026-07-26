@@ -10,14 +10,14 @@ import Icon from '@/components/Icon';
 const MAT_CATS = ['All', 'Furniture', 'Lighting', 'Fixtures', 'Finishes'];
 
 const MATERIALS = [
-  { id: 1, tone: 'linen', name: 'Linen Sectional', cat: 'Furniture', qty: 1, unit: 'ea', unitPrice: 4200, stock: 'in-stock' },
-  { id: 2, tone: 'oak', name: 'White Oak Coffee Table', cat: 'Furniture', qty: 1, unit: 'ea', unitPrice: 1100, stock: 'in-stock' },
-  { id: 3, tone: 'charcoal', name: 'Brass Pendant Light', cat: 'Lighting', qty: 2, unit: 'ea', unitPrice: 620, stock: 'order' },
-  { id: 4, tone: 'travertine', name: 'Travertine Side Table', cat: 'Furniture', qty: 2, unit: 'ea', unitPrice: 460, stock: 'in-stock' },
-  { id: 5, tone: 'sand', name: 'Jute Area Rug', cat: 'Finishes', qty: 1, unit: 'ea', unitPrice: 680, stock: 'in-stock' },
-  { id: 6, tone: 'stone', name: 'Matte Black Faucet', cat: 'Fixtures', qty: 1, unit: 'ea', unitPrice: 340, stock: 'order' },
-  { id: 7, tone: 'warmwhite', name: 'Warm White Paint', cat: 'Finishes', qty: 4, unit: 'gal', unitPrice: 35, stock: 'in-stock' },
-  { id: 8, tone: 'clay', name: 'Terracotta Vase Set', cat: 'Furniture', qty: 3, unit: 'ea', unitPrice: 120, stock: 'in-stock' },
+  { item_id: 1, tone: 'linen', item_name: 'Linen Sectional', item_category: 'Furniture', projItem_quantity: 1, unit: 'ea', projItem_unitCost: 4200, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 4200, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 2, tone: 'oak', item_name: 'White Oak Coffee Table', item_category: 'Furniture', projItem_quantity: 1, unit: 'ea', projItem_unitCost: 1100, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 1100, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 3, tone: 'charcoal', item_name: 'Brass Pendant Light', item_category: 'Lighting', projItem_quantity: 2, unit: 'ea', projItem_unitCost: 620, stock: 'order', item_brand: '', item_model: '', item_cost: 620, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 4, tone: 'travertine', item_name: 'Travertine Side Table', item_category: 'Furniture', projItem_quantity: 2, unit: 'ea', projItem_unitCost: 460, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 460, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 5, tone: 'sand', item_name: 'Jute Area Rug', item_category: 'Finishes', projItem_quantity: 1, unit: 'ea', projItem_unitCost: 680, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 680, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 6, tone: 'stone', item_name: 'Matte Black Faucet', item_category: 'Fixtures', projItem_quantity: 1, unit: 'ea', projItem_unitCost: 340, stock: 'order', item_brand: '', item_model: '', item_cost: 340, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 7, tone: 'warmwhite', item_name: 'Warm White Paint', item_category: 'Finishes', projItem_quantity: 4, unit: 'gal', projItem_unitCost: 35, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 35, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
+  { item_id: 8, tone: 'clay', item_name: 'Terracotta Vase Set', item_category: 'Furniture', projItem_quantity: 3, unit: 'ea', projItem_unitCost: 120, stock: 'in-stock', item_brand: '', item_model: '', item_cost: 120, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_status: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
 ];
 
 const STAT_CELLS = [
@@ -29,15 +29,15 @@ const STAT_CELLS = [
 ];
 
 function MaterialCard({ item }) {
-  const total = item.qty * item.unitPrice;
+  const total = item.projItem_quantity * item.projItem_unitCost;
   const stockColor = item.stock === 'in-stock' ? '#7AB96B' : '#D4A45A';
   const stockLabel = item.stock === 'in-stock' ? 'In stock' : 'To order';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
       <PhotoTile tone={item.tone} style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: 'rgba(247,242,234,0.92)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.42)' }}>{item.qty} {item.unit} · ${item.unitPrice.toLocaleString()} ea</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: 'rgba(247,242,234,0.92)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.item_name}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.42)' }}>{item.projItem_quantity} {item.unit} · ${item.projItem_unitCost.toLocaleString()} ea</div>
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: 'rgba(247,242,234,0.88)', marginBottom: 3 }}>${total.toLocaleString()}</div>
@@ -55,12 +55,12 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
   const [search, setSearch] = useState('');
 
   const filtered = MATERIALS.filter(m => {
-    const catMatch = activeCat === 'All' || m.cat === activeCat;
-    const searchMatch = !search || m.name.toLowerCase().includes(search.toLowerCase());
+    const catMatch = activeCat === 'All' || m.item_category === activeCat;
+    const searchMatch = !search || m.item_name.toLowerCase().includes(search.toLowerCase());
     return catMatch && searchMatch;
   });
 
-  const totalFFE = MATERIALS.reduce((s, m) => s + m.qty * m.unitPrice, 0);
+  const totalFFE = MATERIALS.reduce((s, m) => s + m.projItem_quantity * m.projItem_unitCost, 0);
 
   return (
     <LightScene>
@@ -72,8 +72,8 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <PhotoTile tone="linen" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
             <div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 600, color: 'rgba(247,242,234,0.95)' }}>{project?.name || 'Living Room Refresh'}</div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)' }}>{project?.client || 'Maya Chen'}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 600, color: 'rgba(247,242,234,0.95)' }}>{project?.proj_title || 'Living Room Refresh'}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)' }}>{project?.user_id_client || 'Maya Chen'}</div>
             </div>
           </div>
 
@@ -111,7 +111,7 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
         </div>
 
         <div style={{ padding: '0 18px 100px' }}>
-          {filtered.map(m => <MaterialCard key={m.id} item={m} />)}
+          {filtered.map(m => <MaterialCard key={m.item_id} item={m} />)}
         </div>
       </div>
 

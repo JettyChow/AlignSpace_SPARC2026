@@ -14,10 +14,10 @@ const FILTER_CHIPS = [
 ];
 
 const PROJECTS = [
-  { id: 1, tone: 'linen', name: 'Living Room Refresh', client: 'Maya Chen', progress: 68, stage: 'Package Review', urgent: false },
-  { id: 2, tone: 'oak', name: 'Master Suite Reno', client: 'Jordan Park', progress: 34, stage: 'FFE Selection', urgent: true },
-  { id: 3, tone: 'travertine', name: 'Open Kitchen', client: 'Sam Rivera', progress: 92, stage: 'Handoff Ready', urgent: false },
-  { id: 4, tone: 'sand', name: 'Home Office', client: 'Casey Wu', progress: 12, stage: 'Discovery', urgent: false },
+  { proj_id: 1, tone: 'linen', proj_title: 'Living Room Refresh', user_id_client: 'Maya Chen', proj_completionPercent: 68, proj_status: 'Package Review', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 2, tone: 'oak', proj_title: 'Master Suite Reno', user_id_client: 'Jordan Park', proj_completionPercent: 34, proj_status: 'FFE Selection', urgent: true, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 2, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 3, tone: 'travertine', proj_title: 'Open Kitchen', user_id_client: 'Sam Rivera', proj_completionPercent: 92, proj_status: 'Handoff Ready', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 3, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 4, tone: 'sand', proj_title: 'Home Office', user_id_client: 'Casey Wu', proj_completionPercent: 12, proj_status: 'Discovery', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
 ];
 
 function StatTile({ value, label, accent }) {
@@ -52,14 +52,14 @@ function ProjectCard({ project, onClick }) {
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10.5, fontWeight: 600, color: '#D4A45A' }}>Needs attention</span>
           </div>
         )}
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: 600, color: 'rgba(247,242,234,0.95)', marginBottom: 2 }}>{project.name}</div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)', marginBottom: 8 }}>{project.client} · {project.stage}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: 600, color: 'rgba(247,242,234,0.95)', marginBottom: 2 }}>{project.proj_title}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)', marginBottom: 8 }}>{project.user_id_client} · {project.proj_status}</div>
         <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${project.progress}%`, borderRadius: 2, background: 'var(--champagne)', transition: 'width 600ms ease' }} />
+          <div style={{ height: '100%', width: `${project.proj_completionPercent}%`, borderRadius: 2, background: 'var(--champagne)', transition: 'width 600ms ease' }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
           <AvatarStack count={2} />
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'rgba(247,242,234,0.38)' }}>{project.progress}%</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'rgba(247,242,234,0.38)' }}>{project.proj_completionPercent}%</span>
         </div>
       </div>
       <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(198,163,107,0.15)', border: '1px solid rgba(198,163,107,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 14, flexShrink: 0 }}>
@@ -73,7 +73,7 @@ export default function ProjectsScreen({ onOpenProject, onProfile }) {
   const [activeFilter, setActiveFilter] = useState('All');
 
   const filtered = activeFilter === 'All' ? PROJECTS : PROJECTS.filter(p => {
-    if (activeFilter === 'Active') return p.progress < 90;
+    if (activeFilter === 'Active') return p.proj_completionPercent < 90;
     if (activeFilter === 'Review') return p.urgent;
     return false;
   });
@@ -105,7 +105,7 @@ export default function ProjectsScreen({ onOpenProject, onProfile }) {
             </button>
           ))}
         </div>
-        {filtered.map(p => <ProjectCard key={p.id} project={p} onClick={() => onOpenProject?.(p)} />)}
+        {filtered.map(p => <ProjectCard key={p.proj_id} project={p} onClick={() => onOpenProject?.(p)} />)}
       </div>
     </LightScene>
   );

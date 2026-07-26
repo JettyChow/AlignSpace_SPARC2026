@@ -59,7 +59,6 @@ export default function EntryScreen({ role, onNew, onContinue, onSupport }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <EntryCard accent icon="plus" title="Create new project" subtitle="Start a fresh renovation journey" onClick={onNew} />
           <EntryCard tone="warmwhite" icon="layers" title="Continue: Living Room" subtitle="Package review · 68% complete" onClick={onContinue} />
-          <EntryCard tone="linen" icon="book-open" title="Saved inspirations" subtitle="12 saved pieces" onClick={() => onSupport?.('saved')} />
           <EntryCard tone="oak" icon="clock" title="Project history" subtitle="3 completed · 1 active" onClick={() => onSupport?.('history')} />
         </div>
 

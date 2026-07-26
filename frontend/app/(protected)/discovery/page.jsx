@@ -15,7 +15,7 @@ export default function DiscoveryPage() {
       setSelected={setSelected}
       onBack={back}
       onSelect={() => go('/focus')}
-      onMenu={() => go('/saved')}
+      onMenu={() => go('/history')}
     />
   );
 }

@@ -15,7 +15,7 @@ export default function PackagePage() {
       onConfirm={toggleConfirmed}
       onBack={back}
       onContinue={() => go('/ffe')}
-      onMenu={() => go('/saved')}
+      onMenu={() => go('/history')}
     />
   );
 }

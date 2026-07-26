@@ -7,12 +7,12 @@ import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 
 const DIRECTIONS = [
-  { id: 'warm-minimal', tone: 'linen', label: 'Warm Minimal', pct: 92 },
-  { id: 'coastal-calm', tone: 'sand', label: 'Coastal Calm', pct: 78 },
-  { id: 'modern-luxe', tone: 'charcoal', label: 'Modern Luxe', pct: 71 },
-  { id: 'rustic-chic', tone: 'oak', label: 'Rustic Chic', pct: 65 },
-  { id: 'bold-eclectic', tone: 'clay', label: 'Bold & Eclectic', pct: 58 },
-  { id: 'timeless', tone: 'travertine', label: 'Timeless Classic', pct: 54 },
+  { sty_id: 'warm-minimal', tone: 'linen', sty_name: 'Warm Minimal', pct: 92, sty_description: '' },
+  { sty_id: 'coastal-calm', tone: 'sand', sty_name: 'Coastal Calm', pct: 78, sty_description: '' },
+  { sty_id: 'modern-luxe', tone: 'charcoal', sty_name: 'Modern Luxe', pct: 71, sty_description: '' },
+  { sty_id: 'rustic-chic', tone: 'oak', sty_name: 'Rustic Chic', pct: 65, sty_description: '' },
+  { sty_id: 'bold-eclectic', tone: 'clay', sty_name: 'Bold & Eclectic', pct: 58, sty_description: '' },
+  { sty_id: 'timeless', tone: 'travertine', sty_name: 'Timeless Classic', pct: 54, sty_description: '' },
 ];
 
 function DirectionCard({ dir, isSelected, onClick }) {
@@ -31,7 +31,7 @@ function DirectionCard({ dir, isSelected, onClick }) {
         </div>
       )}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px' }}>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{dir.label}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: '#fff', marginBottom: 2 }}>{dir.sty_name}</div>
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, color: 'rgba(255,255,255,0.65)' }}>{dir.pct}% match</div>
       </div>
     </button>
@@ -54,7 +54,7 @@ export default function DiscoveryScreen({ selected, setSelected, onBack, onSelec
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.55)', marginBottom: 20, lineHeight: 1.5 }}>Based on your intake, we matched these design directions. Pick one to explore.</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {DIRECTIONS.map(dir => (
-            <DirectionCard key={dir.id} dir={dir} isSelected={localSelected === dir.id} onClick={() => toggle(dir.id)} />
+            <DirectionCard key={dir.sty_id} dir={dir} isSelected={localSelected === dir.sty_id} onClick={() => toggle(dir.sty_id)} />
           ))}
         </div>
       </div>
