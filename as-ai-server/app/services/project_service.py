@@ -61,6 +61,7 @@ def create_project(project):
     projects[project_id] = {
         "project_id": project_id,
         "status": "created",
+        "firm_id": project.firm_id,
         "room_type": None,
         "created_at": now,
         "updated_at": now,
@@ -73,7 +74,9 @@ def create_project(project):
             "scope": None,
             "style_tags": [],
             "goal": None,
-            "mood": None
+            "mood": None,
+            "room_sqft": None,
+            "budget_band": None,
         },
         "images": [],
         "directions": [],
@@ -81,6 +84,10 @@ def create_project(project):
         "materials": [],
         "alternatives": [],
         "budget": None,
+        "ai_brief": None,
+        "ai_profile": None,
+        "ai_budget": None,
+        "ai_deliverable": None,
         "handoff": None
     }
 

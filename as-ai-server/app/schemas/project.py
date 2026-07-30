@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 
 class ProjectCreate(BaseModel):
-    pass
+    firm_id: str = "firm_default"
 
 
 class ChatMessage(BaseModel):
@@ -20,6 +20,8 @@ class PreferenceUpdate(BaseModel):
     style_tags: Optional[List[str]] = []
     goal: Optional[str] = None
     mood: Optional[str] = None
+    room_sqft: Optional[float] = Field(default=None, gt=0)
+    budget_band: Optional[str] = None
 
 
 class ImageCreate(BaseModel):

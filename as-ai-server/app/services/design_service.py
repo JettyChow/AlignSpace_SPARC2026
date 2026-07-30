@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from app.services import project_service
+from app.services import pipeline_service
 
 
 VALID_MATERIAL_STATUSES = ["confirmed", "tbd", "saved_for_later", "swapped"]
@@ -35,14 +36,15 @@ def select_direction(project_id: int, direction_id: int):
 
     for direction in project.get("directions", []):
         if direction["direction_id"] == direction_id:
-            project["selected_direction"] = direction
-            project["status"] = "direction_selected"
-            project["updated_at"] = project_service.get_timestamp()
+            pipeline_service.assemble_project_direction(project_id, direction)
 
             return {
                 "status": "direction selected",
                 "project_id": project_id,
-                "selected_direction": direction
+                "selected_direction": direction,
+                "materials": project["materials"],
+                "alternatives": project["alternatives"],
+                "budget": project["ai_budget"],
             }
 
     raise HTTPException(status_code=404, detail="Direction not found")
@@ -146,6 +148,17 @@ def get_tracker(project_id: int):
 
 def get_budget(project_id: int):
     project = project_service.get_project(project_id)
+    if project.get("ai_budget"):
+        budget = project["ai_budget"]
+        return {
+            "project_id": project_id,
+            "estimate": budget["estimated_total"],
+            "budgetFit": budget["status"],
+            "warnings": [
+                f"Estimated total exceeds the {budget['budget_band']} budget ceiling."
+            ] if budget["status"] == "over" else [],
+            "pipeline_budget": budget,
+        }
     materials = project.get("materials", [])
 
     estimate = sum(
