@@ -1,0 +1,168 @@
+{
+  "project_id": "proj_001",
+  "firm_id": "firm_demo",
+  "profile": {
+    "styles": {
+      "warm": 1.0,
+      "minimal": 1.0,
+      "natural": 0.67,
+      "calm": 0.67,
+      "clean": 0.33,
+      "classic": 0.33
+    },
+    "functions": [
+      "more storage",
+      "walk-in shower",
+      "bathtub",
+      "easy to clean"
+    ],
+    "must_haves": [
+      "more storage",
+      "easy to clean"
+    ],
+    "avoid": [],
+    "budget_band": "medium",
+    "extraction_source": "rule_based",
+    "notes": "Extracted with offline keyword model (no Claude key present)."
+  },
+  "chosen_direction": {
+    "key": "japandi",
+    "name": "Japandi",
+    "blurb": "Japanese minimalism meets Scandinavian warmth; natural, calm, uncluttered.",
+    "style_tags": [
+      "minimal",
+      "warm",
+      "natural",
+      "calm"
+    ],
+    "match_score": 0.83,
+    "est_low": 2020.0,
+    "est_high": 3820.0
+  },
+  "package": {
+    "direction_key": "japandi",
+    "direction_name": "Japandi",
+    "line_items": [
+      {
+        "category": "floor_tile",
+        "product_name": "Wood-look plank tile",
+        "tier": "standard",
+        "unit": "sqft",
+        "unit_price": 9.0,
+        "quantity": 49.5,
+        "subtotal": 445.5,
+        "confidence": 0.83,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "wall_tile",
+        "product_name": "Large-format matte tile",
+        "tier": "standard",
+        "unit": "sqft",
+        "unit_price": 11.0,
+        "quantity": 59.4,
+        "subtotal": 653.4,
+        "confidence": 0.75,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "vanity",
+        "product_name": "Oak floating vanity",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 850.0,
+        "quantity": 1.0,
+        "subtotal": 850.0,
+        "confidence": 0.83,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "faucet",
+        "product_name": "Matte black faucet",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 220.0,
+        "quantity": 1.0,
+        "subtotal": 220.0,
+        "confidence": 0.6,
+        "flagged": true,
+        "flag_reason": "Limited style match for faucet in the catalog; designer to confirm."
+      },
+      {
+        "category": "mirror",
+        "product_name": "Round black-frame mirror",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 190.0,
+        "quantity": 1.0,
+        "subtotal": 190.0,
+        "confidence": 0.7,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "lighting",
+        "product_name": "Warm sconce pair",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 180.0,
+        "quantity": 1.0,
+        "subtotal": 180.0,
+        "confidence": 0.88,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "toilet",
+        "product_name": "One-piece skirted",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 380.0,
+        "quantity": 1.0,
+        "subtotal": 380.0,
+        "confidence": 0.75,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "shower_set",
+        "product_name": "Matte rain shower set",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 520.0,
+        "quantity": 1.0,
+        "subtotal": 520.0,
+        "confidence": 0.73,
+        "flagged": false,
+        "flag_reason": null
+      },
+      {
+        "category": "paint",
+        "product_name": "Low-sheen designer paint",
+        "tier": "standard",
+        "unit": "each",
+        "unit_price": 220.0,
+        "quantity": 1.0,
+        "subtotal": 220.0,
+        "confidence": 0.83,
+        "flagged": false,
+        "flag_reason": null
+      }
+    ],
+    "estimated_total": 3658.9
+  },
+  "budget": {
+    "budget_band": "medium",
+    "band_ceiling": 4500.0,
+    "estimated_total": 3658.9,
+    "status": "within",
+    "overage": 0.0,
+    "suggested_swaps": [],
+    "adjusted_total": 3658.9
+  },
+  "scope_summary": "Full bathroom renovation in a Japandi direction. Client leans warm, minimal, natural. Functional priorities: more storage, walk-in shower, bathtub, easy to clean. Budget band: medium. All selections below are starting points for the designer to confirm and quote.",
+  "markdown": "# Renovation Brief \u2014 Project proj_001\n\n**Direction:** Japandi \u2014 Japanese minimalism meets Scandinavian warmth; natural, calm, uncluttered.\n**Style fit:** 83%  \n**Intent source:** rule_based\n\n## Scope\nFull bathroom renovation in a Japandi direction. Client leans warm, minimal, natural. Functional priorities: more storage, walk-in shower, bathtub, easy to clean. Budget band: medium. All selections below are starting points for the designer to confirm and quote.\n\n## Selection Sheet\n| Item | Product | Tier | Qty | Unit $ | Subtotal | Conf. | Review |\n|---|---|---|---:|---:|---:|---:|:--:|\n| Floor Tile | Wood-look plank tile | standard | 49.5 sqft | $9 | $446 | 83% |  |\n| Wall Tile | Large-format matte tile | standard | 59.4 sqft | $11 | $653 | 75% |  |\n| Vanity | Oak floating vanity | standard | 1 each | $850 | $850 | 83% |  |\n| Faucet | Matte black faucet | standard | 1 each | $220 | $220 | 60% | \u26a0\ufe0f |\n| Mirror | Round black-frame mirror | standard | 1 each | $190 | $190 | 70% |  |\n| Lighting | Warm sconce pair | standard | 1 each | $180 | $180 | 88% |  |\n| Toilet | One-piece skirted | standard | 1 each | $380 | $380 | 75% |  |\n| Shower Set | Matte rain shower set | standard | 1 each | $520 | $520 | 73% |  |\n| Paint | Low-sheen designer paint | standard | 1 each | $220 | $220 | 83% |  |\n| | | | | | **$3,659** | | |\n\n## Budget\n- Band ceiling (medium): **$4,500**\n- Estimated total: **$3,659** \u2014 _within_\n\n## Flagged for designer review\n- **Faucet** \u2014 Limited style match for faucet in the catalog; designer to confirm.\n\n_Estimates are materials-only ranges, not a final quote. Designer confirms quantities, labor, and final pricing._"
+}
