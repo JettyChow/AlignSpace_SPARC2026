@@ -28,11 +28,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Frontend type check
+      - name: Frontend lint
         run: |
-          cd as-ai-web
+          cd frontend
           npm ci
-          npx tsc --noEmit
+          npm run lint
 
   # ── main only: build Next.js on GitHub's 7GB runner, not the 4GB Droplet ──
   build-frontend:
@@ -50,7 +50,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
         run: |
-          cd as-ai-web
+          cd frontend
           npm ci
           npm run build
           cp -r .next/static .next/standalone/.next/static
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: web-build
-          path: as-ai-web/.next/standalone
+          path: frontend/.next/standalone
 
   # ── main only: ship it ──
   deploy:
@@ -78,7 +78,7 @@ jobs:
           REMOTE_HOST: ${{ secrets.DROPLET_IP }}
           REMOTE_USER: deploy
           SOURCE: "web-build/"
-          TARGET: "/var/www/AlignSpace_SPARC2026/as-ai-web"
+          TARGET: "/var/www/AlignSpace_SPARC2026/frontend"
 
       - name: Update backend, migrate, restart services
         uses: appleboy/ssh-action@v1        # version-pinned, never @master
