@@ -61,6 +61,7 @@ jobs:
         with:
           name: web-build
           path: frontend/.next/standalone
+          include-hidden-files: true
 
   # ── main only: ship it ──
   deploy:
