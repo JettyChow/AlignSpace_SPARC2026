@@ -33,9 +33,16 @@ function EntryCard({ tone, icon, title, subtitle, accent, onClick }) {
   );
 }
 
-export default function EntryScreen({ role, onNew, onContinue, onSupport }) {
+export default function EntryScreen({ role, userName, projects = [], onNew, onContinue, onSupport }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  const inProgress = projects.filter((p) => (p.proj_completionPercent || 0) < 100);
+  const completedCount = projects.length - inProgress.length;
+  const current = inProgress[0];
+  const historySubtitle = projects.length === 0
+    ? 'No projects yet'
+    : `${completedCount} completed · ${inProgress.length} active`;
 
   return (
     <LightScene>
@@ -50,7 +57,7 @@ export default function EntryScreen({ role, onNew, onContinue, onSupport }) {
 
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--champagne)', opacity: 0.8, marginBottom: 4 }}>{greeting}</div>
         <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 34, fontWeight: 600, color: 'rgba(247,242,234,0.97)', letterSpacing: '-0.015em', lineHeight: 1.1, margin: 0 }}>
-          {role === 'designer' ? 'Your workspace' : 'Maya Chen'}
+          {role === 'designer' ? 'Your workspace' : userName || ' '}
         </h1>
         <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.54)', marginTop: 8, marginBottom: 28 }}>
           {role === 'designer' ? '3 projects need your attention today' : "Let's continue shaping your space"}
@@ -58,8 +65,10 @@ export default function EntryScreen({ role, onNew, onContinue, onSupport }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <EntryCard accent icon="plus" title="Create new project" subtitle="Start a fresh renovation journey" onClick={onNew} />
-          <EntryCard tone="warmwhite" icon="layers" title="Continue: Living Room" subtitle="Package review · 68% complete" onClick={onContinue} />
-          <EntryCard tone="oak" icon="clock" title="Project history" subtitle="3 completed · 1 active" onClick={() => onSupport?.('history')} />
+          {current && (
+            <EntryCard tone="warmwhite" icon="layers" title={`Continue: ${current.proj_title}`} subtitle={`${current.proj_status || 'In progress'} · ${current.proj_completionPercent || 0}% complete`} onClick={onContinue} />
+          )}
+          <EntryCard tone="oak" icon="clock" title="Project history" subtitle={historySubtitle} onClick={() => onSupport?.('history')} />
         </div>
 
         <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
