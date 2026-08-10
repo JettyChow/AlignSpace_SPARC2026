@@ -28,6 +28,7 @@ import os
 from dataclasses import asdict
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from api_schemas import BriefRequest, AssembleRequest, PipelineRequest
 from pipeline import run_intake, run_for_direction
@@ -37,6 +38,24 @@ app = FastAPI(
     title="AlignSpace AI Pipeline",
     version="0.1.0",
     description="Turns a messy client brief into a structured renovation package.",
+)
+
+# The frontend (Next.js) calls these routes directly from the browser — see
+# frontend/services/pipeline.service.js — so the browser needs an explicit
+# CORS allowance or every fetch() gets blocked before it reaches these
+# handlers (server-to-server calls, e.g. curl, aren't affected either way).
+# CORS_ORIGINS is a comma-separated list; defaults to the local frontend dev
+# server.
+_cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
