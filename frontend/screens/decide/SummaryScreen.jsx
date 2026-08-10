@@ -6,13 +6,36 @@ import { PrimaryButton, GlassButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 
-const STATS = [
-  { icon: 'sparkle', label: 'Direction selected', value: 'Warm Minimal', meta: '92% match' },
-  { icon: 'layers',  label: 'FFE status',         value: '6 of 9 confirmed', meta: '67% complete' },
-  { icon: 'dollar',  label: 'Budget summary',     value: '$31.4K–$38.2K',   meta: 'Within $50K' },
+// Placeholder PROJECTS row (+ its ROOM_TYPES/STYLES/BUDGETS joins) — field
+// names mirror the DBML schema so a real fetch is a drop-in swap.
+const PROJECT = {
+  proj_id: 1,
+  proj_title: 'Warm Minimal renovation',
+  proj_matchPercent: 92,
+  proj_completionPercent: 67,
+  proj_budgetMinOverride: 31400,
+  proj_budgetMaxOverride: 38200,
+  roomType: { roomType_id: 1, roomType_name: 'Primary bathroom' },
+  styles: [{ sty_id: 1, sty_name: 'Warm Minimal' }],
+};
+const BUDGET = { bud_id: 1, bud_maxAmount: 50000 };
+
+// FFE section confirmation counts — an aggregate over ROOMS/PROJECT_ITEMS,
+// not a single schema column, so it's kept as its own small placeholder.
+const FFE_SECTIONS = { confirmed: 6, total: 9 };
+
+// PROJECT_ITEMS still awaiting a decision (status !== 'approved').
+const OUTSTANDING_ITEMS = [
+  { projItem_id: 1, item_name: 'Floor tile selection', projItem_status: 'pending' },
+  { projItem_id: 2, item_name: 'Faucet & shower system', projItem_status: 'pending' },
+  { projItem_id: 3, item_name: 'Mirror & hardware', projItem_status: 'pending' },
 ];
 
-const OUTSTANDING = ['Floor tile selection', 'Faucet & shower system', 'Mirror & hardware'];
+const STATS = [
+  { icon: 'sparkle', label: 'Direction selected', value: PROJECT.styles[0]?.sty_name, meta: `${PROJECT.proj_matchPercent}% match` },
+  { icon: 'layers', label: 'FFE status', value: `${FFE_SECTIONS.confirmed} of ${FFE_SECTIONS.total} confirmed`, meta: `${PROJECT.proj_completionPercent}% complete` },
+  { icon: 'dollar', label: 'Budget summary', value: `$${(PROJECT.proj_budgetMinOverride / 1000).toFixed(1)}K–$${(PROJECT.proj_budgetMaxOverride / 1000).toFixed(1)}K`, meta: `Within $${Math.round(BUDGET.bud_maxAmount / 1000)}K` },
+];
 
 export default function SummaryScreen({ role, onBack, onHandoff, onMenu }) {
   return (
@@ -25,8 +48,8 @@ export default function SummaryScreen({ role, onBack, onHandoff, onMenu }) {
           <PhotoTile tone="travertine" photo photoPos="64% 46%" height={140} radius={0}>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,11,8,0.6))' }} />
             <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16 }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>PRIMARY BATHROOM</div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>Warm Minimal renovation</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>{PROJECT.roomType.roomType_name.toUpperCase()}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{PROJECT.proj_title}</div>
             </div>
           </PhotoTile>
         </div>
@@ -47,11 +70,11 @@ export default function SummaryScreen({ role, onBack, onHandoff, onMenu }) {
 
         {/* outstanding decisions */}
         <div style={{ marginTop: 10, padding: 18, borderRadius: 20, background: 'rgba(212,164,90,0.1)', border: '1px solid rgba(212,164,90,0.28)' }}>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'rgb(255,255,255)' }}>3 outstanding decisions</div>
-          {OUTSTANDING.map((d, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'rgb(255,255,255)' }}>{OUTSTANDING_ITEMS.length} outstanding decisions</div>
+          {OUTSTANDING_ITEMS.map((item) => (
+            <div key={item.projItem_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--warning)', display: 'inline-block' }} />
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>{d}</span>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>{item.item_name}</span>
             </div>
           ))}
         </div>
