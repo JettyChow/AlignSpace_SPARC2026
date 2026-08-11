@@ -1,8 +1,8 @@
 name: alignspace
 services:
   - name: frontend
-    source_dir: as-ai-web
-    dockerfile_path: as-ai-web/Dockerfile
+    source_dir: frontend
+    dockerfile_path: frontend/Dockerfile
     http_port: 80
     health_check:
       http_path: /

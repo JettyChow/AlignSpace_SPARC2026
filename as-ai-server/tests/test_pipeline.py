@@ -117,7 +117,6 @@ def test_room_size_changes_tile_quantity_no_shared_state():
 
 def _claude_like_profile():
     """Mimics a rich profile from Claude intent extraction (many weighted styles)."""
-    from pipeline import DesignDirection
     from pipeline.agents.assembly import assemble_package
     from pipeline.agents.matching import match_directions
     from pipeline.models import ClientProfile
