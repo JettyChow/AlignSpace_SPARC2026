@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import users, projects, pipeline, design, designer
+from app.routers import users, projects, pipeline, design, designer, ai_proxy
 
 
 app = FastAPI(title="AlignSpace Backend API")
@@ -30,6 +30,7 @@ app.include_router(projects.router)
 app.include_router(pipeline.router)
 app.include_router(design.router)
 app.include_router(designer.router)
+app.include_router(ai_proxy.router)
 
 
 @app.get("/")

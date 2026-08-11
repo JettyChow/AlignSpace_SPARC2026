@@ -55,6 +55,23 @@ For local frontend development, the backend allows CORS from
 BACKEND_CORS_ORIGINS=http://localhost:3000 uvicorn app.main:app --reload --port 8001
 ```
 
+The main backend also exposes lightweight compatibility proxy routes for the
+current frontend branch if it points its AI client at the backend:
+
+```bash
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+NEXT_PUBLIC_API_URL=http://localhost:8001
+```
+
+Those proxy routes are:
+
+- `GET /presets/directions`
+- `POST /intake`
+- `POST /assemble`
+- `POST /pipeline/run`
+
+They forward to the AI pipeline configured by `AI_PIPELINE_URL`.
+
 ### Turning on Claude
 
 Intent extraction uses a deterministic keyword fallback by default so demos and

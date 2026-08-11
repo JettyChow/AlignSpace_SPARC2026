@@ -38,6 +38,35 @@ def _pipeline_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=502, detail="AI pipeline returned an invalid response.") from exc
 
 
+def _pipeline_get(path: str) -> dict[str, Any]:
+    """GET helper for lightweight AI pipeline proxy endpoints."""
+    try:
+        response = httpx.get(
+            f"{AI_PIPELINE_URL}{path}", timeout=AI_PIPELINE_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        return response.json()
+    except httpx.ConnectError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="AI pipeline is unavailable. Start it or set AI_PIPELINE_URL.",
+        ) from exc
+    except httpx.TimeoutException as exc:
+        raise HTTPException(status_code=504, detail="AI pipeline request timed out.") from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=503, detail="AI pipeline request failed.") from exc
+    except (httpx.HTTPStatusError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="AI pipeline returned an invalid response.") from exc
+
+
+def proxy_pipeline_get(path: str) -> dict[str, Any]:
+    return _pipeline_get(path)
+
+
+def proxy_pipeline_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return _pipeline_request(path, payload)
+
+
 def _budget_band(value: Any) -> str:
     value = str(value or "medium").strip().lower()
     return value if value in {"low", "medium", "high"} else "medium"
@@ -55,7 +84,10 @@ def _build_brief(project: dict[str, Any]) -> dict[str, Any]:
         "timeline_weeks": None,
         "priorities": [value for value in (preferences.get("scope"), preferences.get("goal")) if value],
         "style_chips": preferences.get("style_tags") or [],
-        "chat_text": "\n".join(message.message for message in messages),
+        "chat_text": "\n".join(
+            message.get("message") if isinstance(message, dict) else message.message
+            for message in messages
+        ),
     }
 
 

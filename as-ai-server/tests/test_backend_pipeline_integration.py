@@ -66,3 +66,84 @@ def test_generate_reports_unavailable_ai_pipeline(client, monkeypatch):
     project = client.post("/projects", json={}).json()
     response = client.post(f"/projects/{project['project_id']}/generate")
     assert response.status_code == 503
+
+
+def test_project_create_accepts_frontend_brief_shape_and_returns_aliases(client):
+    response = client.post(
+        "/projects",
+        json={
+            "title": "Home office",
+            "room_type": "home_office",
+            "budget_band": "medium",
+            "priorities": ["Better functionality"],
+            "style_chips": ["Warm minimal"],
+            "chat_text": "I want a calm office with better storage.",
+        },
+    )
+
+    assert response.status_code == 200
+    project = response.json()
+    assert project["project_id"] == 1
+    assert project["proj_id"] == 1
+    assert project["proj_title"] == "Home office"
+    assert project["proj_status"] == "Created"
+    assert project["preferences"]["room_type"] == "home_office"
+    assert project["preferences"]["style_tags"] == ["Warm minimal"]
+    assert project["chat_messages"][0]["message"] == "I want a calm office with better storage."
+
+    projects = client.get("/projects").json()["projects"]
+    assert projects[0]["proj_title"] == "Home office"
+    assert projects[0]["proj_completionPercent"] == 0
+
+
+def test_preferences_accept_frontend_direction_key(client):
+    project = client.post("/projects", json={"title": "Kitchen"}).json()
+
+    response = client.post(
+        f"/projects/{project['project_id']}/preferences",
+        json={"direction_key": "warm_minimal", "style_chips": ["Warm minimal"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["preferences"]["direction_key"] == "warm_minimal"
+    assert body["preferences"]["style_tags"] == ["Warm minimal"]
+    assert body["project"]["selected_direction"]["pipeline_direction_key"] == "warm_minimal"
+
+
+def test_backend_can_proxy_pipeline_intake_for_frontend(client, monkeypatch):
+    calls = []
+
+    def fake_pipeline(path, payload):
+        calls.append((path, payload))
+        return _intake_response()
+
+    monkeypatch.setattr(pipeline_service, "_pipeline_request", fake_pipeline)
+
+    response = client.post(
+        "/intake",
+        json={
+            "firm_id": "firm_1",
+            "project_id": "1",
+            "room_type": "bathroom",
+            "budget_band": "medium",
+            "style_chips": ["warm"],
+            "chat_text": "spa bathroom",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["directions"][0]["key"] == "japandi"
+    assert calls == [
+        (
+            "/intake",
+            {
+                "firm_id": "firm_1",
+                "project_id": "1",
+                "room_type": "bathroom",
+                "budget_band": "medium",
+                "style_chips": ["warm"],
+                "chat_text": "spa bathroom",
+            },
+        )
+    ]
