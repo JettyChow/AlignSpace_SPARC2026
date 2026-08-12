@@ -67,6 +67,11 @@ def _render_markdown(pkg: RenovationPackage) -> str:
                     f"(save ${s.savings:,.0f})"
                 )
             lines.append(f"- Adjusted total after swaps: **${b.adjusted_total:,.0f}**")
+        if not b.fits_after_swaps:
+            lines.append(
+                "- ⚠️ Still over the ceiling even with every cheaper swap applied — "
+                "this budget band may not be feasible for this room size."
+            )
     flagged = [i for i in m.line_items if i.flagged]
     if flagged:
         lines.append("")

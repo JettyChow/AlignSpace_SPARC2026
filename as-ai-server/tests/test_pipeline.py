@@ -78,6 +78,46 @@ def test_budget_over_triggers_swaps_and_fits_after():
     assert b.adjusted_total <= b.band_ceiling, "swaps should bring it under the ceiling"
 
 
+def test_luxury_band_gets_premium_ceiling_not_medium_fallback():
+    """Regression: 'luxury' silently fell back to the medium ceiling and a
+    standard-tier anchor, so luxury clients got downgraded packages AND were
+    told they were over budget."""
+    _, _, deliverable = run_pipeline(_brief(
+        room_sqft=60, budget_band="luxury", style_chips=["luxury"],
+        chat_text="high-end spa bathroom, premium finishes",
+    ))
+    b = deliverable.budget
+    assert b.band_ceiling == BUDGET_CEILINGS["luxury"]
+    assert b.status == "within"
+    assert {i.tier for i in deliverable.package.line_items} == {"premium"}
+
+
+def test_intent_word_boundaries_avoid_false_positives():
+    """Regression: 'bathroom' registered a bathtub request (substring match),
+    and 'money is not really an issue' landed in the avoid list."""
+    profile, _ = run_intake(_brief(
+        priorities=[],
+        chat_text="a bathroom refresh, money is not really an issue",
+    ))
+    assert "bathtub" not in profile.functions
+    assert profile.avoid == []
+
+
+def test_swaps_keep_stepping_down_and_report_infeasible_bands():
+    """A huge room on a low budget can't fit even fully swapped down; the
+    report must say so instead of leaving an over-ceiling adjusted_total
+    unremarked."""
+    _, _, deliverable = run_pipeline(_brief(
+        room_sqft=200, budget_band="low", style_chips=["luxury"],
+        chat_text="high-end everything",
+    ))
+    b = deliverable.budget
+    assert b.status == "over"
+    assert b.adjusted_total <= b.band_ceiling or not b.fits_after_swaps
+    if not b.fits_after_swaps:
+        assert "may not be feasible" in deliverable.markdown
+
+
 def test_over_budget_flags_are_cost_warnings():
     # When picks land above the budget tier, each such line should be flagged
     # with a cost-confirmation reason (not generic noise).

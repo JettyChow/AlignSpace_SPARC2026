@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from ..models import ClientBrief, ClientProfile
 
@@ -44,15 +45,32 @@ _STYLE_KEYWORDS = {
     "scandi": "minimal", "japandi": "natural", "industrial": "cool",
 }
 
-# Functional needs the assembly stage can act on.
+# Functional needs the assembly stage can act on. Keys are matched as whole
+# words, so "bath" alone would still fire on "primary bath" but never inside
+# "bathroom"; we key on tub words only to avoid that ambiguity. Likewise
+# "easy to clean" is spelled out so style talk ("clean lines") doesn't
+# register a maintenance requirement.
 _FUNCTION_KEYWORDS = {
     "storage": "more storage", "cabinet": "more storage", "shelf": "more storage",
     "double": "double vanity", "two sink": "double vanity",
     "shower": "walk-in shower", "rain": "rain shower",
-    "tub": "bathtub", "bath": "bathtub",
+    "tub": "bathtub", "bathtub": "bathtub", "soaking": "bathtub",
     "accessible": "accessibility", "grab bar": "accessibility",
-    "clean": "easy to clean", "low maintenance": "easy to clean",
+    "easy to clean": "easy to clean", "low maintenance": "easy to clean",
 }
+
+# Dislikes: the phrase after an explicit negation lead-in. Word-bounded so
+# "cannot" never triggers, and bare "not" is deliberately excluded — "money is
+# not really an issue" is emphasis, not a dislike.
+_AVOID_RE = re.compile(
+    r"\b(?:avoid|hate|without|no|(?:don'?t|do not|doesn'?t|does not)\s+(?:want|like))\s+"
+    r"([a-z][a-z0-9' -]{2,40})"
+)
+
+
+def _has_word(kw: str, text: str) -> bool:
+    """Whole-word/phrase match: 'bath' must not fire inside 'bathroom'."""
+    return re.search(rf"\b{re.escape(kw)}\b", text) is not None
 
 
 def _normalize(weights: dict[str, float]) -> dict[str, float]:
@@ -75,22 +93,22 @@ def _rule_based(brief: ClientBrief) -> ClientProfile:
             styles[s] = styles.get(s, 0) + 2.0
     # Free text keywords count single.
     for kw, style in _STYLE_KEYWORDS.items():
-        if kw in text:
+        if _has_word(kw, text):
             styles[style] = styles.get(style, 0) + 1.0
 
     functions: list[str] = []
     for kw, fn in _FUNCTION_KEYWORDS.items():
-        if kw in text and fn not in functions:
+        if _has_word(kw, text) and fn not in functions:
             functions.append(fn)
     for p in brief.priorities:
         if p and p not in functions:
             functions.append(p)
 
     avoid: list[str] = []
-    for marker in ("no ", "not ", "avoid ", "hate ", "don't want "):
-        idx = text.find(marker)
-        if idx != -1:
-            avoid.append(text[idx:idx + 40].strip())
+    for m in _AVOID_RE.finditer(text):
+        phrase = m.group(1).strip()
+        if phrase and phrase not in avoid:
+            avoid.append(phrase)
 
     return ClientProfile(
         styles=_normalize(styles),
