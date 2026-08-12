@@ -270,7 +270,7 @@ def update_preferences(project_id: int, preferences):
     project = get_project(project_id)
 
     update_data = preferences.model_dump(exclude_none=True)
-    if "style_chips" in update_data and "style_tags" not in update_data:
+    if update_data.get("style_chips") and not update_data.get("style_tags"):
         update_data["style_tags"] = update_data["style_chips"]
 
     for key, value in update_data.items():
