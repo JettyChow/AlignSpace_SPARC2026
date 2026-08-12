@@ -69,7 +69,7 @@ def proxy_pipeline_post(path: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def _budget_band(value: Any) -> str:
     value = str(value or "medium").strip().lower()
-    return value if value in {"low", "medium", "high", "luxury"} else "medium"
+    return value if value in {"low", "medium", "high"} else "medium"
 
 
 def _build_brief(project: dict[str, Any]) -> dict[str, Any]:
@@ -192,11 +192,10 @@ def assemble_project_direction(project_id: int, direction: dict[str, Any]) -> di
     if not brief:
         raise HTTPException(status_code=400, detail="Generate directions before selecting one.")
 
-    payload = {"brief": brief, "direction_key": direction["pipeline_direction_key"]}
-    if project.get("ai_profile"):
-        # Reuse the intake profile so the pipeline skips re-extraction.
-        payload["profile"] = project["ai_profile"]
-    deliverable = _pipeline_request("/assemble", payload)
+    deliverable = _pipeline_request(
+        "/assemble",
+        {"brief": brief, "direction_key": direction["pipeline_direction_key"]},
+    )
     package = deliverable.get("package")
     budget = deliverable.get("budget")
     if not isinstance(package, dict) or not isinstance(budget, dict):

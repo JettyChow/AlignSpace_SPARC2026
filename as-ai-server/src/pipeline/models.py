@@ -30,7 +30,7 @@ class ClientBrief:
     project_id: str
     room_type: str = "bathroom"        # MVP supports bathroom only
     room_sqft: float = 40.0            # structured input → drives cost estimates
-    budget_band: str = "medium"        # "low" | "medium" | "high" | "luxury"
+    budget_band: str = "medium"        # "low" | "medium" | "high"
     timeline_weeks: Optional[int] = None
     priorities: list[str] = field(default_factory=list)   # e.g. "more storage"
     style_chips: list[str] = field(default_factory=list)  # e.g. "modern", "warm"
@@ -119,7 +119,6 @@ class BudgetReport:
     overage: float = 0.0
     suggested_swaps: list[Swap] = field(default_factory=list)
     adjusted_total: float = 0.0       # total after applying suggested swaps
-    fits_after_swaps: bool = True     # False -> still over ceiling with every swap applied
 
 
 # ---------------------------------------------------------------------------

@@ -31,7 +31,6 @@ from fastapi import FastAPI, HTTPException
 
 from api_schemas import BriefRequest, AssembleRequest, PipelineRequest
 from pipeline import run_intake, run_for_direction
-from pipeline.agents import match_directions
 from pipeline.presets import DIRECTIONS
 
 app = FastAPI(
@@ -77,17 +76,9 @@ def assemble(req: AssembleRequest) -> dict:
     """
     Phase B. The client picked a direction; build the priced material package,
     run the budget check, and generate the deliverable.
-
-    When the caller passes back the profile from /intake we reuse it — no
-    second Claude call, and assembly stays consistent with the directions the
-    client was actually shown. Without it we re-extract from the brief.
     """
     brief = req.brief.to_brief()
-    if req.profile is not None:
-        profile = req.profile.to_profile()
-        directions = match_directions(profile)
-    else:
-        profile, directions = run_intake(brief)
+    profile, directions = run_intake(brief)
 
     chosen = next((d for d in directions if d.key == req.direction_key), None)
     if chosen is None:
