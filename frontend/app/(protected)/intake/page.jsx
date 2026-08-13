@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { useNavigation } from '@/hooks/useNavigation';
 import { useAppStore } from '@/store/useAppStore';
 import IntakeScreen from '@/screens/flow/IntakeScreen';
@@ -9,6 +9,7 @@ import { createProject } from '@/services/project.service';
 export default function IntakePage() {
   const { go, back } = useNavigation();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const setBrief = useAppStore((s) => s.setBrief);
   const setFirmId = useAppStore((s) => s.setFirmId);
   const setProjectId = useAppStore((s) => s.setProjectId);
@@ -29,7 +30,7 @@ export default function IntakePage() {
           const project = await createProject({
             title: brief.room_type ? brief.room_type.replace(/_/g, ' ') : 'New project',
             ...brief,
-          });
+          }, getToken);
           if (project?.project_id) setProjectId(project.project_id);
           if (project?.firm_id) setFirmId(project.firm_id);
         } catch {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useNavigation } from '@/hooks/useNavigation';
 import HistoryScreen from '@/screens/support/HistoryScreen';
 import { getProjects } from '@/services/project.service';
@@ -8,6 +9,7 @@ import { ApiError } from '@/services/apiClient';
 
 export default function HistoryPage() {
   const { go, back } = useNavigation();
+  const { getToken } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,7 +19,7 @@ export default function HistoryPage() {
     setLoading(true);
     setError(null);
 
-    getProjects()
+    getProjects(getToken)
       .then((data) => {
         if (cancelled) return;
         setProjects(Array.isArray(data) ? data : data?.projects || []);
@@ -37,7 +39,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getToken]);
 
   return (
     <HistoryScreen

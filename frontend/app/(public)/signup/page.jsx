@@ -9,7 +9,7 @@ import SignupScreen from '@/screens/auth/SignupScreen';
 export default function SignupPage() {
   const role = useAppStore((s) => s.role);
   const { go, back } = useNavigation();
-  const { isLoaded, signUp } = useSignUp();
+  const { isLoaded, signUp, setActive } = useSignUp();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,9 +44,12 @@ export default function SignupPage() {
       });
 
       if (result.status === 'complete') {
-        // Account created — per product flow, route to /login rather than
-        // auto-signing in (no setActive() call here).
-        go('/login');
+        // Account created and Clerk already finalized a session for it —
+        // activate it client-side and route straight in, rather than
+        // sending the user to /login where signIn.create() would just
+        // reject with "already signed in".
+        await setActive({ session: result.createdSessionId });
+        go(role === 'designer' ? '/projects' : '/entry');
         return;
       }
 
@@ -68,7 +71,8 @@ export default function SignupPage() {
     try {
       const result = await signUp.attemptEmailAddressVerification({ code });
       if (result.status === 'complete') {
-        go('/login');
+        await setActive({ session: result.createdSessionId });
+        go(role === 'designer' ? '/projects' : '/entry');
       } else {
         setVerifyError('That code did not work. Please try again.');
       }

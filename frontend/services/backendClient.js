@@ -8,14 +8,27 @@ import { ApiError, parseResponse } from './apiClient';
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
 
-export async function backendRequest(path, options = {}) {
+async function getAuthHeaders(getToken) {
+  if (!getToken) return {};
+
+  const token = await getToken();
+
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+}
+
+export async function backendRequest(path, options = {}, getToken) {
   if (!BACKEND_URL) {
     throw new ApiError('NEXT_PUBLIC_BACKEND_URL is not configured.', { status: 0 });
   }
 
+  const authHeaders = await getAuthHeaders(getToken);
+
   const headers = {
     Accept: 'application/json',
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+    ...authHeaders,
     ...options.headers,
   };
 

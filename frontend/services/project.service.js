@@ -14,39 +14,39 @@
 
 import { backendRequest, jsonBody } from './backendClient';
 
-export async function getProjects() {
-  return backendRequest('/projects');
+export async function getProjects(getToken) {
+  return backendRequest('/projects', {}, getToken);
 }
 
-export async function getProject(projectId) {
-  return backendRequest(`/projects/${projectId}`);
+export async function getProject(projectId, getToken) {
+  return backendRequest(`/projects/${projectId}`, {}, getToken);
 }
 
-export async function createProject(data) {
+export async function createProject(data, getToken) {
   return backendRequest('/projects', {
     method: 'POST',
     body: jsonBody(data),
-  });
+  }, getToken);
 }
 
 // Intake/preference updates (style chips, budget band, room details, ...).
-export async function updateProjectPreferences(projectId, preferences) {
+export async function updateProjectPreferences(projectId, preferences, getToken) {
   return backendRequest(`/projects/${projectId}/preferences`, {
     method: 'POST',
     body: jsonBody(preferences),
-  });
+  }, getToken);
 }
 
 // Basic project field updates (title, status, assigned designer, ...).
-export async function updateProject(projectId, data) {
+export async function updateProject(projectId, data, getToken) {
   return backendRequest(`/projects/${projectId}`, {
     method: 'PUT',
     body: jsonBody(data),
-  });
+  }, getToken);
 }
 
-export async function deleteProject(projectId) {
+export async function deleteProject(projectId, getToken) {
   return backendRequest(`/projects/${projectId}`, {
     method: 'DELETE',
-  });
+  }, getToken);
 }

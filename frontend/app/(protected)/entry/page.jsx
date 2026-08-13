@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import EntryScreen from '@/screens/flow/EntryScreen';
@@ -11,11 +11,12 @@ export default function EntryPage() {
   const role = useAppStore((s) => s.role);
   const { go } = useNavigation();
   const { isLoaded, user } = useUser();
+  const { getToken } = useAuth();
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
-    getProjects()
+    getProjects(getToken)
       .then((data) => {
         if (!cancelled) setProjects(Array.isArray(data) ? data : data?.projects || []);
       })
@@ -25,7 +26,7 @@ export default function EntryPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getToken]);
 
   return (
     <EntryScreen

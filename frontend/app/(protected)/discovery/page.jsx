@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import DiscoveryScreen from '@/screens/explore/DiscoveryScreen';
@@ -16,6 +17,7 @@ export default function DiscoveryPage() {
   const setSelected = useAppStore((s) => s.setSelected);
   const setDeliverable = useAppStore((s) => s.setDeliverable);
   const { go, back } = useNavigation();
+  const { getToken } = useAuth();
   const [assembling, setAssembling] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,7 +41,7 @@ export default function DiscoveryPage() {
         // Persist the chosen direction on the real project record. Silently
         // ignored if the main backend isn't reachable yet — the AI-pipeline
         // deliverable itself is the source of truth for this session either way.
-        await updateProjectPreferences(projectId, { direction_key: directionKey });
+        await updateProjectPreferences(projectId, { direction_key: directionKey }, getToken);
       } catch {
         // No main backend configured/running — nothing to persist to.
       }
