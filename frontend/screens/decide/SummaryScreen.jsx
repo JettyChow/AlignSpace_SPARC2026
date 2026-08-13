@@ -5,39 +5,36 @@ import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton, GlassButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
+import { preset, budget as BUDGET, primaryTotal, GROUPS } from '@/data/warmMinimalKitchenFixture';
 
-// Placeholder PROJECTS row (+ its ROOM_TYPES/STYLES/BUDGETS joins) — field
-// names mirror the DBML schema so a real fetch is a drop-in swap.
+// Real PRESETS row (+ its ROOM_TYPES/STYLES/BUDGETS joins) from the "Warm
+// Minimal Kitchen" preset in alignspace dataset.xlsx — field names mirror
+// the DBML schema so a real fetch is a drop-in swap.
 const PROJECT = {
   proj_id: 1,
-  proj_title: 'Warm Minimal renovation',
-  proj_matchPercent: 92,
-  proj_completionPercent: 67,
-  proj_budgetMinOverride: 31400,
-  proj_budgetMaxOverride: 38200,
-  roomType: { roomType_id: 1, roomType_name: 'Primary bathroom' },
-  styles: [{ sty_id: 1, sty_name: 'Warm Minimal' }],
+  proj_title: preset.preset_name,
+  roomType: { roomType_id: 1, roomType_name: preset.roomType_name },
+  styles: [{ sty_id: 1, sty_name: preset.sty_name }],
 };
-const BUDGET = { bud_id: 1, bud_maxAmount: 50000 };
 
-// FFE section confirmation counts — an aggregate over ROOMS/PROJECT_ITEMS,
-// not a single schema column, so it's kept as its own small placeholder.
-const FFE_SECTIONS = { confirmed: 6, total: 9 };
+// A representative outstanding-decision label per unconfirmed group.
+const OUTSTANDING_LABELS = {
+  materials: 'Cabinet, countertop & backsplash selections',
+  fixtures: 'Faucet, hardware & sink selections',
+  lighting: 'Pendant lighting selection',
+};
 
-// PROJECT_ITEMS still awaiting a decision (status !== 'approved').
-const OUTSTANDING_ITEMS = [
-  { projItem_id: 1, item_name: 'Floor tile selection', projItem_status: 'pending' },
-  { projItem_id: 2, item_name: 'Faucet & shower system', projItem_status: 'pending' },
-  { projItem_id: 3, item_name: 'Mirror & hardware', projItem_status: 'pending' },
-];
+export default function SummaryScreen({ role, confirmed = [], onBack, onHandoff, onMenu }) {
+  const confirmedCount = GROUPS.filter((g) => confirmed.includes(g)).length;
+  const completionPercent = Math.round((confirmedCount / GROUPS.length) * 100);
+  const outstandingGroups = GROUPS.filter((g) => !confirmed.includes(g));
 
-const STATS = [
-  { icon: 'sparkle', label: 'Direction selected', value: PROJECT.styles[0]?.sty_name, meta: `${PROJECT.proj_matchPercent}% match` },
-  { icon: 'layers', label: 'FFE status', value: `${FFE_SECTIONS.confirmed} of ${FFE_SECTIONS.total} confirmed`, meta: `${PROJECT.proj_completionPercent}% complete` },
-  { icon: 'dollar', label: 'Budget summary', value: `$${(PROJECT.proj_budgetMinOverride / 1000).toFixed(1)}K–$${(PROJECT.proj_budgetMaxOverride / 1000).toFixed(1)}K`, meta: `Within $${Math.round(BUDGET.bud_maxAmount / 1000)}K` },
-];
+  const STATS = [
+    { icon: 'sparkle', label: 'Direction selected', value: PROJECT.styles[0]?.sty_name, meta: PROJECT.roomType.roomType_name },
+    { icon: 'layers', label: 'FFE status', value: `${confirmedCount} of ${GROUPS.length} confirmed`, meta: `${completionPercent}% complete` },
+    { icon: 'dollar', label: 'Budget summary', value: `$${(primaryTotal / 1000).toFixed(1)}K`, meta: `Within $${Math.round(BUDGET.bud_maxAmount / 1000)}K` },
+  ];
 
-export default function SummaryScreen({ role, onBack, onHandoff, onMenu }) {
   return (
     <LightScene>
       <AppBar onBack={onBack} eyebrow="Before handoff" title="Project summary" onMenu={onMenu} />
@@ -69,15 +66,17 @@ export default function SummaryScreen({ role, onBack, onHandoff, onMenu }) {
         ))}
 
         {/* outstanding decisions */}
-        <div style={{ marginTop: 10, padding: 18, borderRadius: 20, background: 'rgba(212,164,90,0.1)', border: '1px solid rgba(212,164,90,0.28)' }}>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'rgb(255,255,255)' }}>{OUTSTANDING_ITEMS.length} outstanding decisions</div>
-          {OUTSTANDING_ITEMS.map((item) => (
-            <div key={item.projItem_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--warning)', display: 'inline-block' }} />
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>{item.item_name}</span>
-            </div>
-          ))}
-        </div>
+        {outstandingGroups.length > 0 && (
+          <div style={{ marginTop: 10, padding: 18, borderRadius: 20, background: 'rgba(212,164,90,0.1)', border: '1px solid rgba(212,164,90,0.28)' }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'rgb(255,255,255)' }}>{outstandingGroups.length} outstanding decisions</div>
+            {outstandingGroups.map((g) => (
+              <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--warning)', display: 'inline-block' }} />
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>{OUTSTANDING_LABELS[g]}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* edit / save glass buttons */}
         <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
