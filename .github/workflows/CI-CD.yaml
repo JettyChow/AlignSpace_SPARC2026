@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   # ── Runs on every PR and every push to main ──
@@ -37,7 +38,7 @@ jobs:
   # ── main only: build Next.js on GitHub's 7GB runner, not the 4GB Droplet ──
   build-frontend:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +61,7 @@ jobs:
         with:
           name: web-build
           path: frontend/.next/standalone
+          include-hidden-files: true
 
   # ── main only: ship it ──
   deploy:
@@ -72,7 +74,7 @@ jobs:
           path: web-build
 
       - name: Rsync frontend bundle to Droplet
-        uses: easingthemes/ssh-deploy@v5
+        uses: easingthemes/ssh-deploy@v5.1.2
         with:
           SSH_PRIVATE_KEY: ${{ secrets.DROPLET_SSH_KEY }}
           REMOTE_HOST: ${{ secrets.DROPLET_IP }}

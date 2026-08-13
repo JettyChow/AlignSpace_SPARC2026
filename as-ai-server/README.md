@@ -29,6 +29,49 @@ uvicorn main:app --app-dir src --reload --port 8000
 #   then open http://localhost:8000/docs  (interactive Swagger UI)
 ```
 
+### Main backend integration
+
+The prototype backend (`app/main.py`) calls this service in two phases: its
+`POST /projects/{project_id}/generate` route forwards the stored intake to
+`POST /intake`, and `POST /projects/{project_id}/directions/select` forwards
+the selected pipeline direction to `POST /assemble`. Run the two processes on
+different ports and set the backend's pipeline URL when it is not the default:
+
+```bash
+# terminal 1: AI pipeline
+uvicorn main:app --app-dir src --reload --port 8000
+
+# terminal 2: main backend (from as-ai-server)
+AI_PIPELINE_URL=http://localhost:8000 uvicorn app.main:app --reload --port 8001
+```
+
+`AI_PIPELINE_TIMEOUT_SECONDS` defaults to `20`. An unavailable service returns
+`503`, a timeout `504`, and an invalid upstream response `502` from the backend.
+
+For local frontend development, the backend allows CORS from
+`http://localhost:3000` and `http://127.0.0.1:3000` by default. Override with:
+
+```bash
+BACKEND_CORS_ORIGINS=http://localhost:3000 uvicorn app.main:app --reload --port 8001
+```
+
+The main backend also exposes lightweight compatibility proxy routes for the
+current frontend branch if it points its AI client at the backend:
+
+```bash
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+NEXT_PUBLIC_API_URL=http://localhost:8001
+```
+
+Those proxy routes are:
+
+- `GET /presets/directions`
+- `POST /intake`
+- `POST /assemble`
+- `POST /pipeline/run`
+
+They forward to the AI pipeline configured by `AI_PIPELINE_URL`.
+
 ### Turning on Claude
 
 Intent extraction uses a deterministic keyword fallback by default so demos and
