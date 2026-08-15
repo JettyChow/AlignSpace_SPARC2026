@@ -47,9 +47,11 @@ function Row({ icon, label, trailing, onClick }) {
   );
 }
 
-export default function ProfileScreen({ onBack }) {
+export default function ProfileScreen({ onBack, userName, role, activeProjectCount, onSignOut }) {
   const [notif, setNotif] = useState(true);
   const [updates, setUpdates] = useState(false);
+  const initial = userName?.trim()?.[0]?.toUpperCase() || '?';
+  const roleLabel = role === 'designer' ? 'Designer' : 'Client';
 
   return (
     <LightScene>
@@ -62,10 +64,12 @@ export default function ProfileScreen({ onBack }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: 'var(--glow-warm)', marginBottom: 14,
           }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 32, fontWeight: 600, color: '#fff' }}>M</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 32, fontWeight: 600, color: '#fff' }}>{initial}</span>
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: 'var(--fg-1)' }}>Maya Chen</div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--fg-3)', marginTop: 2 }}>Client · 2 active projects</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: 'var(--fg-1)' }}>{userName || 'Loading…'}</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--fg-3)', marginTop: 2 }}>
+            {roleLabel}{typeof activeProjectCount === 'number' ? ` · ${activeProjectCount} active project${activeProjectCount === 1 ? '' : 's'}` : ''}
+          </div>
         </div>
 
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--fg-3)', margin: '0 0 4px 4px' }}>Account</div>
@@ -82,7 +86,7 @@ export default function ProfileScreen({ onBack }) {
           <Row icon="settings" label="App preferences" />
         </GlassPanel>
 
-        <button style={{
+        <button onClick={onSignOut} style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: 9, height: 52, borderRadius: 999, cursor: 'pointer',
           background: 'transparent', border: '1px solid var(--line-strong)',

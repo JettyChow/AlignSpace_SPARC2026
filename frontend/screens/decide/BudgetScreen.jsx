@@ -5,8 +5,25 @@ import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton } from '@/components/Buttons';
 import GlassPanel from '@/components/GlassPanel';
 import Icon from '@/components/Icon';
+import { budget as BUDGET, primaryTotal, allocationByGroup, biggestSwapDelta } from '@/data/warmMinimalKitchenFixture';
+
+// Real preset total + budget band from the "Warm Minimal Kitchen" preset in
+// alignspace dataset.xlsx (see warmMinimalKitchenFixture.js) — field names
+// mirror the DBML schema, so a real fetch of this project is a drop-in swap.
+const ALLOCATION_COLORS = { materials: '#C6A36B', fixtures: '#D8C5A9', lighting: '#A8854F' };
+const ALLOCATION = allocationByGroup().map((a) => ({ ...a, color: ALLOCATION_COLORS[a.group] }));
+
+// The real alternate with the largest cost delta across the 8 categories —
+// every real swap-to option in this dataset costs more than its primary
+// (there's no downgrade-to-save option here), so this is framed as an
+// optional upgrade, not an invented savings claim.
+const SWAP = biggestSwapDelta();
 
 export default function BudgetScreen({ onBack, onContinue, onMenu }) {
+  const allocatedTotal = ALLOCATION.reduce((sum, a) => sum + a.total, 0);
+  const buffer = BUDGET.bud_maxAmount - primaryTotal;
+  const withinBudget = primaryTotal <= BUDGET.bud_maxAmount;
+
   return (
     <LightScene>
       <AppBar onBack={onBack} eyebrow="Confidence" title="Budget review" onMenu={onMenu} />
@@ -16,12 +33,12 @@ export default function BudgetScreen({ onBack, onContinue, onMenu }) {
         <div style={{ textAlign: 'center', padding: '8px 0 24px' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 14px', borderRadius: 999, background: 'rgba(122,185,107,0.16)', marginBottom: 18 }}>
             <Icon name="checkCircle" size={16} color="#5a9a4c" stroke={2} />
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: '#5a9a4c' }}>Comfortably within budget</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: '#5a9a4c' }}>{withinBudget ? 'Comfortably within budget' : 'Over budget'}</span>
           </div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(222,187,128,0.9)' }}>Estimated range</div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '6px 0 4px', color: 'rgb(255,255,255)' }}>$31,400</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(222,187,128,0.9)' }}>Estimated total</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '6px 0 4px', color: 'rgb(255,255,255)' }}>${primaryTotal.toLocaleString()}</div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'rgb(182,182,182)' }}>
-            to $38,200 · target was <strong style={{ color: 'rgb(255,255,255)' }}>$50K</strong>
+            {BUDGET.bud_label} budget · target was <strong style={{ color: 'rgb(255,255,255)' }}>${Math.round(BUDGET.bud_maxAmount / 1000)}K</strong>
           </div>
         </div>
 
@@ -29,30 +46,30 @@ export default function BudgetScreen({ onBack, onContinue, onMenu }) {
         <GlassPanel style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--fg-1)' }}>Allocation</span>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--success)' }}>$18,600 buffer</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--success)' }}>${buffer.toLocaleString()} buffer</span>
           </div>
           <div style={{ display: 'flex', height: 14, borderRadius: 999, overflow: 'hidden', background: 'rgba(95,85,76,0.1)' }}>
-            {[{ w: 40, c: '#C6A36B' }, { w: 20, c: '#D8C5A9' }, { w: 13, c: '#A8854F' }].map((s, i) => (
-              <div key={i} style={{ width: `${s.w}%`, background: s.c }} />
+            {ALLOCATION.map((a) => (
+              <div key={a.group} style={{ width: `${Math.round((a.total / allocatedTotal) * 100)}%`, background: a.color }} />
             ))}
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-            {[{ l: 'Materials', v: '$19.2K', c: '#C6A36B' }, { l: 'Fixtures', v: '$7.0K', c: '#D8C5A9' }, { l: 'Lighting', v: '$5.2K', c: '#A8854F' }].map((k) => (
-              <div key={k.l} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 999, background: k.c, display: 'inline-block' }} />
+            {ALLOCATION.map((a) => (
+              <div key={a.group} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ width: 9, height: 9, borderRadius: 999, background: a.color, display: 'inline-block' }} />
                 <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'var(--fg-2)' }}>
-                  {k.l} <strong style={{ color: 'var(--fg-1)' }}>{k.v}</strong>
+                  {a.label} <strong style={{ color: 'var(--fg-1)' }}>${(a.total / 1000).toFixed(1)}K</strong>
                 </span>
               </div>
             ))}
           </div>
         </GlassPanel>
 
-        {/* warning callout */}
+        {/* warning callout — surfaces one ITEM_ALTERNATIVES suggestion */}
         <div style={{ display: 'flex', gap: 13, padding: 16, borderRadius: 20, background: 'rgba(212,164,90,0.18)', border: '1px solid rgba(212,164,90,0.42)', marginBottom: 12 }}>
           <Icon name="alert" size={22} color="#e3b878" stroke={1.8} style={{ flex: 'none', marginTop: 1 }} />
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, lineHeight: 1.5, color: 'rgb(255,255,255)' }}>
-            <strong style={{ color: 'rgb(255,255,255)' }}>Brass fixtures run high.</strong> A brushed-nickel set saves ~$1,400 with a similar warmth.
+            Want a bolder look? Swapping to {SWAP.category.alt.item_name.toLowerCase()} adds ~${SWAP.delta.toLocaleString()}, still within budget.
           </div>
         </div>
 
