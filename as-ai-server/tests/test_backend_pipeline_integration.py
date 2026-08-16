@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.services import pipeline_service, project_service
+from app.services import auth_service, pipeline_service, project_service
 
 
 @pytest.fixture(autouse=True)
@@ -29,6 +30,21 @@ def _assembly_response():
         "package": {"line_items": [{"product_name": "Oak vanity", "category": "vanity", "subtotal": 1200, "tier": "standard", "quantity": 1, "unit": "each", "confidence": 0.9, "flagged": False, "flag_reason": None}]},
         "budget": {"budget_band": "medium", "band_ceiling": 10000, "estimated_total": 1200, "status": "within", "overage": 0, "suggested_swaps": [], "adjusted_total": 1200},
     }
+
+
+def _clerk_claims(**claims):
+    return {
+        "sub": "user_clerk_123",
+        "email": "adam@example.com",
+        "first_name": "Adam",
+        "last_name": "Tschida",
+        "name": "Adam Tschida",
+        **claims,
+    }
+
+
+def _fake_clerk_header():
+    return {"Authorization": "Bearer fake-clerk-jwt"}
 
 
 def test_generate_then_select_uses_two_phase_ai_contract(client, monkeypatch):
@@ -147,3 +163,57 @@ def test_backend_can_proxy_pipeline_intake_for_frontend(client, monkeypatch):
             },
         )
     ]
+
+
+def test_users_me_uses_clerk_token_claims_when_present(client, monkeypatch):
+    monkeypatch.setattr(auth_service, "verify_clerk_token", lambda token: _clerk_claims())
+
+    response = client.get("/users/me", headers=_fake_clerk_header())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["user_id"] == "user_clerk_123"
+    assert body["clerk_user_id"] == "user_clerk_123"
+    assert body["email"] == "adam@example.com"
+    assert body["display_name"] == "Adam Tschida"
+    assert body["auth_source"] == "clerk_jwt"
+
+
+def test_invalid_clerk_token_is_rejected(client, monkeypatch):
+    def invalid_token(token):
+        raise HTTPException(status_code=401, detail="Invalid Clerk token.")
+
+    monkeypatch.setattr(auth_service, "verify_clerk_token", invalid_token)
+
+    response = client.get("/users/me", headers=_fake_clerk_header())
+
+    assert response.status_code == 401
+
+
+def test_project_created_with_clerk_token_includes_client_metadata(client, monkeypatch):
+    monkeypatch.setattr(auth_service, "verify_clerk_token", lambda token: _clerk_claims())
+
+    response = client.post(
+        "/projects",
+        json={"title": "Home Office", "room_type": "home_office"},
+        headers=_fake_clerk_header(),
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["clerk_user_id"] == "user_clerk_123"
+    assert body["client"]["display_name"] == "Adam Tschida"
+    assert body["proj_title"] == "Home Office"
+
+
+def test_project_brief_pdf_download_returns_pdf(client):
+    project = client.post(
+        "/projects",
+        json={"title": "Home Office", "room_type": "home_office", "style_chips": ["Warm minimal"]},
+    ).json()
+
+    response = client.get(f"/projects/{project['project_id']}/brief.pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF")

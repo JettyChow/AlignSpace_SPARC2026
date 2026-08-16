@@ -72,6 +72,48 @@ Those proxy routes are:
 
 They forward to the AI pipeline configured by `AI_PIPELINE_URL`.
 
+### Current frontend compatibility notes
+
+The frontend can send Clerk session tokens to the main backend with:
+
+```http
+Authorization: Bearer <clerk_jwt>
+```
+
+For Clerk-enabled frontend requests, the backend uses the verified Clerk token
+claims to populate `GET /users/me` and to attach `clerk_user_id`/client metadata
+to created projects, messages, and image metadata.
+
+When a token is present, the backend verifies its signature against Clerk's JWKS
+before trusting any claims. Configure Clerk verification with:
+
+```bash
+CLERK_ISSUER=https://your-clerk-instance.clerk.accounts.dev
+# Optional if you want to override the derived JWKS URL:
+CLERK_JWKS_URL=https://your-clerk-instance.clerk.accounts.dev/.well-known/jwks.json
+# Optional if your Clerk JWT template uses an audience:
+CLERK_AUDIENCE=your-audience
+```
+
+If no `Authorization` header is sent, the backend keeps using the local mock user
+so unauthenticated local demos still run. If a token is sent and Clerk is not
+configured, the request is rejected with a configuration error instead of falling
+back to an unverified token.
+
+Useful backend endpoints for the latest frontend branch:
+
+- `GET /users/me`
+- `PATCH /users/me/role`
+- `GET /projects`
+- `POST /projects`
+- `GET /projects/{project_id}`
+- `POST /projects/{project_id}/messages`
+- `GET /projects/{project_id}/messages`
+- `POST /projects/{project_id}/images`
+- `GET /projects/{project_id}/images`
+- `GET /projects/{project_id}/brief.pdf`
+- `GET /projects/{project_id}/brief/download`
+
 ### Turning on Claude
 
 Intent extraction uses a deterministic keyword fallback by default so demos and

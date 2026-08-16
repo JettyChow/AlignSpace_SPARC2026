@@ -61,9 +61,17 @@ SECTIONS = [
     ("PRESET_ITEMS", PresetItem),
 ]
 
+# xlsx header -> model column name, per section (only needed where they differ).
+HEADER_RENAMES = {
+    "ITEMS": {"Set": "item_set"},
+}
 
-def _coerce(model, row: dict) -> dict:
+
+def _coerce(model, row: dict, section: str) -> dict:
     """Cast values to the type the model column expects (xlsx gives floats/bools)."""
+    renames = HEADER_RENAMES.get(section, {})
+    row = {renames.get(k, k): v for k, v in row.items()}
+
     columns = {c.name: c for c in model.__table__.columns}
     out = {}
     for key, value in row.items():
@@ -124,7 +132,7 @@ def seed(path: str) -> None:
         for name, model in SECTIONS:
             rows = sections.get(name, [])
             for raw_row in rows:
-                clean = _coerce(model, raw_row)
+                clean = _coerce(model, raw_row, name)
                 session.merge(model(**clean))
             session.flush()
             print(f"{name}: upserted {len(rows)} row(s)")

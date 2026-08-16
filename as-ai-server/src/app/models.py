@@ -249,6 +249,10 @@ class Item(Base):
     item_category: Mapped[str | None] = mapped_column(String)
     item_model: Mapped[str | None] = mapped_column(String)
     item_cost: Mapped[float | None] = mapped_column(Numeric(12, 2))
+    # choice group within a category, e.g. "A"/"B" (dataset's "Set" column)
+    item_set: Mapped[str | None] = mapped_column(String)
+    # public URL of the item's photo (e.g. a DigitalOcean Spaces object URL)
+    item_imageUrl: Mapped[str | None] = mapped_column(String)
 
 
 class ItemMaterial(Base):
