@@ -382,6 +382,7 @@ def _brief_lines(project):
     selected_direction = project.get("selected_direction") or {}
     budget = project.get("ai_budget") or project.get("budget") or {}
     materials = project.get("materials", [])
+    ai_deliverable = project.get("ai_deliverable") or {}
 
     lines = [
         "AlignSpace Project Brief",
@@ -407,8 +408,8 @@ def _brief_lines(project):
                 f"- {material.get('name')} ({material.get('category')}) {_money(material.get('price')) or ''}".strip()
             )
 
-    if project.get("ai_deliverable", {}).get("document_markdown"):
-        lines.extend(["", "AI brief:", project["ai_deliverable"]["document_markdown"][:1200]])
+    if ai_deliverable.get("document_markdown"):
+        lines.extend(["", "AI brief:", ai_deliverable["document_markdown"][:1200]])
 
     return lines
 
