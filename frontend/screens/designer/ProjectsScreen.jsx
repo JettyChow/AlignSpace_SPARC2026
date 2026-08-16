@@ -5,6 +5,7 @@ import LightScene from '@/components/frame/LightScene';
 import AppBar from '@/components/frame/AppBar';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
+import { fullName } from '@/lib/schema';
 
 const FILTER_CHIPS = [
   { label: 'All', count: 12, dot: null },
@@ -13,11 +14,15 @@ const FILTER_CHIPS = [
   { label: 'Pending', count: 1, dot: 'rgba(255,255,255,0.4)' },
 ];
 
+// Placeholder PROJECTS rows — field names mirror the DBML schema. `client`
+// and `assignedDesigner` stand in for the USERS row a real join would
+// return (user_id_client / user_id_assignedDesigner are FKs, not names).
+// `tone` is decorative only — there's no image column on PROJECTS yet.
 const PROJECTS = [
-  { proj_id: 1, tone: 'linen', proj_title: 'Living Room Refresh', user_id_client: 'Maya Chen', proj_completionPercent: 68, proj_status: 'Package Review', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 2, tone: 'oak', proj_title: 'Master Suite Reno', user_id_client: 'Jordan Park', proj_completionPercent: 34, proj_status: 'FFE Selection', urgent: true, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 2, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 3, tone: 'travertine', proj_title: 'Open Kitchen', user_id_client: 'Sam Rivera', proj_completionPercent: 92, proj_status: 'Handoff Ready', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 3, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 4, tone: 'sand', proj_title: 'Home Office', user_id_client: 'Casey Wu', proj_completionPercent: 12, proj_status: 'Discovery', urgent: false, firm_id: 1, user_id_assignedDesigner: 'Elena Ross', bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 1, tone: 'linen', proj_title: 'Living Room Refresh', client: { user_id: 101, user_firstName: 'Maya', user_lastName: 'Chen' }, proj_completionPercent: 68, proj_status: 'Package Review', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 2, tone: 'oak', proj_title: 'Master Suite Reno', client: { user_id: 102, user_firstName: 'Jordan', user_lastName: 'Park' }, proj_completionPercent: 34, proj_status: 'FFE Selection', urgent: true, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 2, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 3, tone: 'travertine', proj_title: 'Open Kitchen', client: { user_id: 103, user_firstName: 'Sam', user_lastName: 'Rivera' }, proj_completionPercent: 92, proj_status: 'Handoff Ready', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 3, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+  { proj_id: 4, tone: 'sand', proj_title: 'Home Office', client: { user_id: 104, user_firstName: 'Casey', user_lastName: 'Wu' }, proj_completionPercent: 12, proj_status: 'Discovery', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
 ];
 
 function StatTile({ value, label, accent }) {
@@ -53,7 +58,7 @@ function ProjectCard({ project, onClick }) {
           </div>
         )}
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: 600, color: 'rgba(247,242,234,0.95)', marginBottom: 2 }}>{project.proj_title}</div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)', marginBottom: 8 }}>{project.user_id_client} · {project.proj_status}</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)', marginBottom: 8 }}>{fullName(project.client)} · {project.proj_status}</div>
         <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${project.proj_completionPercent}%`, borderRadius: 2, background: 'var(--champagne)', transition: 'width 600ms ease' }} />
         </div>
@@ -69,7 +74,7 @@ function ProjectCard({ project, onClick }) {
   );
 }
 
-export default function ProjectsScreen({ onOpenProject, onProfile }) {
+export default function ProjectsScreen({ designer, onOpenProject, onProfile }) {
   const [activeFilter, setActiveFilter] = useState('All');
 
   const filtered = activeFilter === 'All' ? PROJECTS : PROJECTS.filter(p => {
@@ -78,14 +83,16 @@ export default function ProjectsScreen({ onOpenProject, onProfile }) {
     return false;
   });
 
+  const designerName = fullName(designer) || fullName(PROJECTS[0]?.assignedDesigner) || 'Designer';
+
   return (
     <LightScene>
       <AppBar title="Your projects" trailing={
-        <button onClick={onProfile} style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, rgba(198,163,107,0.35), rgba(212,180,130,0.2))', border: '1px solid rgba(198,163,107,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: 'var(--champagne)' }}>E</button>
+        <button onClick={onProfile} style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, rgba(198,163,107,0.35), rgba(212,180,130,0.2))', border: '1px solid rgba(198,163,107,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 700, color: 'var(--champagne)' }}>{designerName[0]?.toUpperCase()}</button>
       } />
       <div style={{ position: 'absolute', top: 88, bottom: 80, left: 0, right: 0, overflowY: 'auto', padding: '14px 18px' }}>
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'rgba(247,242,234,0.48)', marginBottom: 2 }}>Good afternoon</div>
-        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 26, fontWeight: 600, color: 'rgba(247,242,234,0.97)', letterSpacing: '-0.015em', marginBottom: 18 }}>Elena Ross</div>
+        <div style={{ fontFamily: 'var(--font-sans)', fontSize: 26, fontWeight: 600, color: 'rgba(247,242,234,0.97)', letterSpacing: '-0.015em', marginBottom: 18 }}>{designerName}</div>
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
           <StatTile value="12" label={"Active\nprojects"} />
           <StatTile value="3" label={"Need\nattention"} accent />

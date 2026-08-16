@@ -5,47 +5,25 @@ import { PrimaryButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import RoundIconButton from '@/components/frame/RoundIconButton';
 import Icon from '@/components/Icon';
+import { CATEGORY_ITEMS } from '@/data/warmMinimalKitchenFixture';
 
-const CATS = [
-  { id: 'materials', label: 'Materials', icon: 'layers' },
-  { id: 'fixtures',  label: 'Fixtures',  icon: 'faucet' },
-  { id: 'lighting',  label: 'Lighting',  icon: 'light' },
-  { id: 'textiles',  label: 'Textiles',  icon: 'sofa' },
-  { id: 'surfaces',  label: 'Surfaces',  icon: 'tile' },
-];
+// One tab per real item_category (was 5 hand-picked mock tabs covering
+// categories the real Warm Minimal Kitchen preset has no data for, e.g.
+// "Textiles"/"Surfaces" — dropped so nothing here is invented). `group` is
+// the broad Materials/Fixtures/Lighting bucket used for the confirm button
+// and shared with FFEScreen's decision-tracker sections.
+const CATS = CATEGORY_ITEMS.map((c) => ({
+  id: c.item_category,
+  label: c.label,
+  icon: c.icon,
+  group: c.group,
+}));
 
-const CAT_ITEMS = {
-  materials: [
-    { item_id: 1, item_name: 'Calacatta Quartz',       desc: 'Soft white base with subtle veining. Durable and timeless.',  tone: 'travertine', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
-    { item_id: 2, item_name: 'Zellige backsplash tile', desc: 'Warm ivory handmade tile with natural variation.',             tone: 'warmwhite', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
-    { item_id: 3, item_name: 'Brushed brass faucet',   desc: 'Elegant brushed brass finish. Modern and warm.',               tone: 'sand', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
-    { item_id: 4, item_name: 'White oak cabinetry',    desc: 'Rift-sawn white oak with a natural matte finish.',             tone: 'oak', item_brand: '', item_category: 'Materials', item_model: '', item_cost: null },
-  ],
-  fixtures: [
-    { item_id: 5, item_name: 'Brushed brass faucet set', desc: 'Faucet, shower set and hardware in a warm brass tone.', tone: 'sand', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
-    { item_id: 6, item_name: 'Rain shower head',          desc: 'Ceiling-mounted in soft matte brass.',                  tone: 'oak', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
-    { item_id: 7, item_name: 'Concealed linear drain',    desc: 'Tile-in profile in brushed stainless.',                 tone: 'stone', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
-    { item_id: 8, item_name: 'Matte brass towel bar',     desc: 'Minimal hardware to match the faucet set.',             tone: 'sand', item_brand: '', item_category: 'Fixtures', item_model: '', item_cost: null },
-  ],
-  lighting: [
-    { item_id: 9, item_name: 'Warm LED plan',          desc: '2700K dimmable scheme, softly layered.',         tone: 'warmwhite', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
-    { item_id: 10, item_name: 'Brass wall sconces',     desc: 'A pair with frosted glass globes.',               tone: 'sand', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
-    { item_id: 11, item_name: 'Recessed ceiling spots', desc: 'Trimless, tunable warm white.',                   tone: 'charcoal', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
-    { item_id: 12, item_name: 'Linen pendant shades',   desc: 'Natural linen drum over the island.',             tone: 'warmwhite', item_brand: '', item_category: 'Lighting', item_model: '', item_cost: null },
-  ],
-  textiles: [
-    { item_id: 13, item_name: 'Belgian linen drapery', desc: 'Sand tone, floor-length and lined.',   tone: 'linen', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
-    { item_id: 14, item_name: 'Wool-blend rug',         desc: 'Hand-loomed in a soft oatmeal.',       tone: 'stone', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
-    { item_id: 15, item_name: 'Bouclé accent cushions', desc: 'Set of four in a warm ecru.',          tone: 'warmwhite', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
-    { item_id: 16, item_name: 'Mohair throw',           desc: 'Lightweight, in a muted clay.',        tone: 'clay', item_brand: '', item_category: 'Textiles', item_model: '', item_cost: null },
-  ],
-  surfaces: [
-    { item_id: 17, item_name: 'Quartzite countertop',  desc: 'Honed finish with soft veining.',            tone: 'travertine', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
-    { item_id: 18, item_name: 'Zellige wall tile',     desc: 'Handmade in a warm ivory glaze.',            tone: 'warmwhite', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
-    { item_id: 19, item_name: 'White oak cabinetry',   desc: 'Rift-cut flat panel, matte finish.',         tone: 'oak', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
-    { item_id: 20, item_name: 'Lime-washed plaster',   desc: 'Hand-troweled in a soft ivory.',             tone: 'warmwhite', item_brand: '', item_category: 'Surfaces', item_model: '', item_cost: null },
-  ],
-};
+// Each tab's list is exactly [primary, alternate] — the real preset's actual
+// pick plus its one real swap-to option (see warmMinimalKitchenFixture.js).
+const CAT_ITEMS = Object.fromEntries(
+  CATEGORY_ITEMS.map((c) => [c.item_category, [c.primary, c.alt]])
+);
 
 const rowIconBtn = {
   width: 40, height: 40, borderRadius: '50%', cursor: 'pointer', flex: 'none',
@@ -149,7 +127,7 @@ function MaterialRow({ it, onDelete, onSwitch }) {
 }
 
 export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = [], onConfirm }) {
-  const [activeCat, setActiveCat] = useState('materials');
+  const [activeCat, setActiveCat] = useState(CATS[0].id);
   const [data, setData] = useState(() => JSON.parse(JSON.stringify(CAT_ITEMS)));
 
   const list = data[activeCat] || [];
@@ -167,8 +145,10 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
   const remove = (cat, idx) => setData(d => ({ ...d, [cat]: d[cat].filter((_, i) => i !== idx) }));
 
   const totalSel = Object.values(data).reduce((a, l) => a + Math.max(0, l.length - 1), 0);
-  const isOn = confirmed.includes(activeCat);
-  const activeCatLabel = CATS.find(c => c.id === activeCat)?.label ?? '';
+  const activeCatEntry = CATS.find(c => c.id === activeCat);
+  const activeCatLabel = activeCatEntry?.label ?? '';
+  const activeCatGroup = activeCatEntry?.group;
+  const isOn = confirmed.includes(activeCatGroup);
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: 'var(--warm-ivory)' }}>
@@ -184,7 +164,7 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
         <div style={{ position: 'absolute', left: 0, right: 0, top: 96, textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>Material list</div>
           <div style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 37, lineHeight: 1, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em', marginTop: 2, textShadow: '0 2px 16px rgba(0,0,0,0.42)' }}>Warm Minimal</div>
-          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.74)', marginTop: 5 }}>{totalSel} selections · 5 categories</div>
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.74)', marginTop: 5 }}>{totalSel} selections · {CATS.length} categories</div>
         </div>
       </div>
 
@@ -192,7 +172,7 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
       <div style={{ position: 'absolute', top: 200, left: 0, right: 0, zIndex: 12, display: 'flex', gap: 8, overflowX: 'auto', padding: '0 20px 4px', scrollSnapType: 'x proximity' }}>
         {CATS.map(c => {
           const on = activeCat === c.id;
-          const ok = confirmed.includes(c.id);
+          const ok = confirmed.includes(c.group);
           const count = Math.max(0, data[c.id].length - 1);
           return (
             <button key={c.id} onClick={() => setActiveCat(c.id)} style={{
@@ -258,7 +238,7 @@ export default function PackageScreen({ onBack, onContinue, onMenu, confirmed = 
       {/* footer — confirm toggle + continue */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 20px 26px', zIndex: 20, display: 'flex', flexDirection: 'column', gap: 10, background: 'linear-gradient(180deg, rgba(247,243,236,0), rgba(247,243,236,0.86) 30%, var(--warm-ivory) 60%)' }}>
         <button
-          onClick={() => onConfirm && onConfirm(activeCat)}
+          onClick={() => onConfirm && onConfirm(activeCatGroup)}
           style={{
             width: '100%', height: 50, borderRadius: 'var(--r-button)', cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,

@@ -8,34 +8,28 @@ import PhotoTile from '@/components/PhotoTile';
 import StatusPill from '@/components/StatusPill';
 import GlassPanel from '@/components/GlassPanel';
 import Icon from '@/components/Icon';
+import { GROUPS, GROUP_LABELS, GROUP_ICONS, itemsInGroup } from '@/data/warmMinimalKitchenFixture';
 
-const FFE = [
-  { id: 'materials', group: 'Materials', icon: 'layers', hero: { tone: 'oak', pos: '42% 80%' }, items: [
-    { name: 'White oak flooring',    tone: 'oak',       pos: '42% 80%' },
-    { name: 'Honed travertine wall', tone: 'travertine', pos: '30% 24%' },
-    { name: 'Lime plaster finish',   tone: 'warmwhite', pos: '8% 56%'  },
-  ]},
-  { id: 'fixtures', group: 'Fixtures', icon: 'faucet', hero: { tone: 'sand', pos: '55% 62%' }, items: [
-    { name: 'Brushed brass faucet set',  tone: 'sand',  pos: '55% 62%' },
-    { name: 'Rain shower head',          tone: 'stone', pos: '50% 30%' },
-    { name: 'Concealed linear drain',    tone: 'stone', pos: '40% 86%' },
-  ]},
-  { id: 'lighting', group: 'Lighting', icon: 'light', hero: { tone: 'warmwhite', pos: '78% 40%' }, items: [
-    { name: 'Warm LED plan',          tone: 'warmwhite', pos: '78% 32%' },
-    { name: 'Brass wall sconces',     tone: 'clay',      pos: '12% 48%' },
-    { name: 'Recessed ceiling spots', tone: 'warmwhite', pos: '50% 12%' },
-  ]},
-  { id: 'textiles', group: 'Textiles', icon: 'sofa', hero: { tone: 'linen', pos: '82% 58%' }, items: [
-    { name: 'Belgian linen drapery',   tone: 'linen', pos: '80% 36%' },
-    { name: 'Wool-blend rug',          tone: 'linen', pos: '30% 88%' },
-    { name: 'Bouclé accent cushions',  tone: 'linen', pos: '86% 60%' },
-  ]},
-  { id: 'surfaces', group: 'Surfaces', icon: 'tile', hero: { tone: 'stone', pos: '52% 64%' }, items: [
-    { name: 'Quartzite countertop', tone: 'stone',      pos: '54% 62%' },
-    { name: 'Zellige wall tile',    tone: 'travertine', pos: '25% 30%' },
-    { name: 'White oak cabinetry',  tone: 'oak',        pos: '6% 62%'  },
-  ]},
-];
+// Sections grouped by the same real item_category data PackageScreen uses
+// (see warmMinimalKitchenFixture.js) — item names here now match Material
+// List exactly, since both screens read the same source. `tone`/`pos` stay
+// decorative PhotoTile props: there's no image column populated on ITEMS
+// yet (every img_url/item_imageUrl cell in the source xlsx is empty).
+const FFE = GROUPS.map((group) => {
+  const items = itemsInGroup(group).map((c) => ({
+    item_id: c.primary.item_id,
+    item_name: c.primary.item_name,
+    tone: c.primary.tone,
+    pos: c.primary.pos,
+  }));
+  return {
+    id: group,
+    group: GROUP_LABELS[group],
+    icon: GROUP_ICONS[group],
+    hero: { tone: items[0].tone, pos: items[0].pos },
+    items,
+  };
+});
 
 function ProgressRing({ pct, size = 64 }) {
   const r = (size - 8) / 2;
@@ -79,7 +73,7 @@ function FFEGroup({ g, confirmedSection, open, onToggle }) {
       </button>
       {open ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {g.items.map((it, i) => <ItemTile key={i} tone={it.tone} pos={it.pos} label={it.name} height={104} />)}
+          {g.items.map((it) => <ItemTile key={it.item_id} tone={it.tone} pos={it.pos} label={it.item_name} height={104} />)}
         </div>
       ) : (
         <ItemTile tone={g.hero.tone} pos={g.hero.pos} height={96} />

@@ -6,11 +6,15 @@ import RoundIconButton from '@/components/frame/RoundIconButton';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 
+// Placeholder ITEMS tagged in the scene photo — item_name/item_id mirror the
+// DBML schema; id/icon/tone/x/y/dx/dy/colors are UI-only positioning and
+// swatch chrome for the pinned-tag layout, not DB columns. `count` is
+// display copy for "N similar items", not a schema field either.
 const SCENE_TAGS = [
-  { id: 'sofa',  name: 'Linen sofa',     count: '24 similar', icon: 'sofa',    tone: 'linen',      x: 64, y: 52, dx: -58, dy: -20, colors: ['#D8C5A9', '#C4B394', '#9a8f7e', '#5F554C'] },
-  { id: 'floor', name: 'White oak floor', count: '12 similar', icon: 'layers',  tone: 'oak',        x: 25, y: 63, dx: 6,   dy: -42, colors: ['#d8b888', '#b88e5c', '#9a6f42'] },
-  { id: 'wall',  name: 'Travertine wall', count: '8 similar',  icon: 'hexagon', tone: 'travertine', x: 19, y: 30, dx: 14,  dy: -2,  colors: ['#ece0cc', '#d4c0a0', '#b69f78'] },
-  { id: 'drape', name: 'Sheer drapery',   count: '10 similar', icon: 'tile',    tone: 'warmwhite',  x: 89, y: 25, dx: -54, dy: 4,   colors: ['#f7f1e7', '#e8ddca', '#d2c3a6'] },
+  { id: 'sofa',  item_id: 201, item_name: 'Linen sofa',     count: '24 similar', icon: 'sofa',    tone: 'linen',      x: 64, y: 52, dx: -58, dy: -20, colors: ['#D8C5A9', '#C4B394', '#9a8f7e', '#5F554C'] },
+  { id: 'floor', item_id: 202, item_name: 'White oak floor', count: '12 similar', icon: 'layers',  tone: 'oak',        x: 25, y: 63, dx: 6,   dy: -42, colors: ['#d8b888', '#b88e5c', '#9a6f42'] },
+  { id: 'wall',  item_id: 203, item_name: 'Travertine wall', count: '8 similar',  icon: 'hexagon', tone: 'travertine', x: 19, y: 30, dx: 14,  dy: -2,  colors: ['#ece0cc', '#d4c0a0', '#b69f78'] },
+  { id: 'drape', item_id: 204, item_name: 'Sheer drapery',   count: '10 similar', icon: 'tile',    tone: 'warmwhite',  x: 89, y: 25, dx: -54, dy: 4,   colors: ['#f7f1e7', '#e8ddca', '#d2c3a6'] },
 ];
 
 const CARD_STEP = 298;
@@ -49,7 +53,7 @@ function SceneTag({ t, active, onClick }) {
         <span style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: active ? 'var(--champagne-grad)' : 'rgba(255,255,255,0.14)' }}>
           <Icon name={t.icon} size={14} color={active ? '#fff' : 'rgba(255,255,255,0.92)'} stroke={1.8} />
         </span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: active ? 'var(--fg-1)' : '#fff' }}>{t.name}</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 600, color: active ? 'var(--fg-1)' : '#fff' }}>{t.item_name}</span>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 500, color: active ? 'var(--fg-3)' : 'rgba(255,255,255,0.6)' }}>{t.count}</span>
       </button>
     </div>
@@ -124,7 +128,7 @@ export default function FocusScreen({ onBack, onContinue, onMenu }) {
             }}>
               <PhotoTile tone={t.tone} height={64} radius={16} style={{ width: 64, flex: 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{t.name}</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{t.item_name}</div>
                 <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: 'var(--champagne)', margin: '2px 0 8px' }}>{t.count} models</div>
                 <ColorDots colors={t.colors} />
               </div>

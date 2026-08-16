@@ -1,4 +1,4 @@
-# dependencies
+﻿# dependencies
 /node_modules
 
 # next.js build output
@@ -27,3 +27,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# clerk configuration (can include secrets)
+/.clerk/
