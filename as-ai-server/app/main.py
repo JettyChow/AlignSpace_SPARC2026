@@ -2,9 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
 
-load_dotenv()
 from app.routers import users, projects, pipeline, design, designer, ai_proxy
 
 
