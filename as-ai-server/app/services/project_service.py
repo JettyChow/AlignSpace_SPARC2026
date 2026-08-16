@@ -1,5 +1,11 @@
 from datetime import datetime, timezone
+from io import BytesIO
+from textwrap import wrap
+
 from fastapi import HTTPException
+from fastapi.responses import Response
+
+from app.services import auth_service
 
 
 projects = {}
@@ -31,6 +37,19 @@ def _money(value):
         return f"${float(value):,.0f}"
     except (TypeError, ValueError):
         return str(value)
+
+
+def _current_user(request=None):
+    return auth_service.current_user_from_request(request)
+
+
+def _project_belongs_to_user(project, current_user):
+    clerk_user_id = current_user.get("clerk_user_id")
+    if not clerk_user_id:
+        return True
+
+    owner = project.get("clerk_user_id")
+    return owner in (None, clerk_user_id)
 
 
 def _project_title(project):
@@ -76,6 +95,9 @@ def apply_frontend_aliases(project):
     project["proj_matchPercent"] = (
         project.get("selected_direction", {}) or {}
     ).get("match_percent")
+    project["user_id_client"] = project.get("user_id_client")
+    project["clerk_user_id"] = project.get("clerk_user_id")
+    project["client"] = project.get("client")
     return project
 
 
@@ -119,11 +141,13 @@ def build_project_summary(project):
     return summary
 
 
-def list_projects():
+def list_projects(request=None):
+    current_user = _current_user(request)
     return {
         "projects": [
             build_project_summary(project)
             for project in projects.values()
+            if _project_belongs_to_user(project, current_user)
         ]
     }
 
@@ -143,9 +167,10 @@ def get_recent_projects():
     }
 
 
-def create_project(project):
+def create_project(project, request=None):
     project_id = len(projects) + 1
     now = get_timestamp()
+    current_user = _current_user(request)
     project_data = project.model_dump(exclude_none=True)
     style_tags = project_data.get("style_tags") or project_data.get("style_chips") or []
     priorities = project_data.get("priorities") or []
@@ -155,6 +180,16 @@ def create_project(project):
         "project_id": project_id,
         "status": "created",
         "firm_id": project.firm_id,
+        "user_id_client": current_user.get("user_id"),
+        "clerk_user_id": current_user.get("clerk_user_id"),
+        "client": {
+            "user_id": current_user.get("user_id"),
+            "clerk_user_id": current_user.get("clerk_user_id"),
+            "user_firstName": current_user.get("first_name"),
+            "user_lastName": current_user.get("last_name"),
+            "user_email": current_user.get("email"),
+            "display_name": current_user.get("display_name"),
+        },
         "title": project_data.get("title"),
         "room_type": room_type,
         "created_at": now,
@@ -198,15 +233,20 @@ def create_project(project):
     return apply_frontend_aliases(projects[project_id])
 
 
-def get_project(project_id: int):
+def get_project(project_id: int, request=None):
     if project_id not in projects:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    return apply_frontend_aliases(projects[project_id])
+    project = projects[project_id]
+    current_user = _current_user(request)
+    if not _project_belongs_to_user(project, current_user):
+        raise HTTPException(status_code=403, detail="You do not have access to this project.")
+
+    return apply_frontend_aliases(project)
 
 
-def update_project(project_id: int, project):
-    existing_project = get_project(project_id)
+def update_project(project_id: int, project, request=None):
+    existing_project = get_project(project_id, request)
     project_data = project.model_dump(exclude_none=True)
 
     existing_project["project"] = project
@@ -222,8 +262,8 @@ def update_project(project_id: int, project):
     return apply_frontend_aliases(existing_project)
 
 
-def delete_project(project_id: int):
-    get_project(project_id)
+def delete_project(project_id: int, request=None):
+    get_project(project_id, request)
     deleted_project = projects.pop(project_id)
 
     return {
@@ -232,13 +272,17 @@ def delete_project(project_id: int):
     }
 
 
-def add_chat_message(project_id: int, chat):
-    project = get_project(project_id)
+def add_chat_message(project_id: int, chat, request=None):
+    project = get_project(project_id, request)
+    current_user = _current_user(request)
 
     if chat.timestamp is None:
         chat.timestamp = get_timestamp()
 
-    project["chat_messages"].append(chat)
+    message_record = chat.model_dump()
+    message_record["user_id_sender"] = current_user.get("user_id")
+    message_record["clerk_user_id"] = current_user.get("clerk_user_id")
+    project["chat_messages"].append(message_record)
     project["updated_at"] = get_timestamp()
 
     return {
@@ -248,8 +292,8 @@ def add_chat_message(project_id: int, chat):
     }
 
 
-def get_chat_messages(project_id: int):
-    project = get_project(project_id)
+def get_chat_messages(project_id: int, request=None):
+    project = get_project(project_id, request)
 
     return {
         "project_id": project_id,
@@ -257,8 +301,8 @@ def get_chat_messages(project_id: int):
     }
 
 
-def get_conversation(project_id: int):
-    project = get_project(project_id)
+def get_conversation(project_id: int, request=None):
+    project = get_project(project_id, request)
 
     return {
         "project_id": project_id,
@@ -266,8 +310,8 @@ def get_conversation(project_id: int):
     }
 
 
-def update_preferences(project_id: int, preferences):
-    project = get_project(project_id)
+def update_preferences(project_id: int, preferences, request=None):
+    project = get_project(project_id, request)
 
     update_data = preferences.model_dump(exclude_none=True)
     if update_data.get("style_chips") and not update_data.get("style_tags"):
@@ -295,8 +339,9 @@ def update_preferences(project_id: int, preferences):
     }
 
 
-def add_image(project_id: int, image):
-    project = get_project(project_id)
+def add_image(project_id: int, image, request=None):
+    project = get_project(project_id, request)
+    current_user = _current_user(request)
 
     image_id = len(project["images"]) + 1
 
@@ -304,6 +349,8 @@ def add_image(project_id: int, image):
         "image_id": image_id,
         "filename": image.filename,
         "image_url": image.image_url,
+        "uploaded_by": current_user.get("user_id"),
+        "clerk_user_id": current_user.get("clerk_user_id"),
         "uploaded_at": get_timestamp()
     }
 
@@ -317,10 +364,103 @@ def add_image(project_id: int, image):
     }
 
 
-def get_images(project_id: int):
-    project = get_project(project_id)
+def get_images(project_id: int, request=None):
+    project = get_project(project_id, request)
 
     return {
         "project_id": project_id,
         "images": project["images"]
     }
+
+
+def _pdf_escape(text):
+    return str(text).replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _brief_lines(project):
+    preferences = project.get("preferences", {})
+    selected_direction = project.get("selected_direction") or {}
+    budget = project.get("ai_budget") or project.get("budget") or {}
+    materials = project.get("materials", [])
+    ai_deliverable = project.get("ai_deliverable") or {}
+
+    lines = [
+        "AlignSpace Project Brief",
+        "",
+        f"Project: {_project_title(project)}",
+        f"Status: {_status_label(project.get('status'))}",
+        f"Room type: {project.get('room_type') or preferences.get('room_type') or 'Not specified'}",
+        f"Goal: {preferences.get('goal') or preferences.get('scope') or 'Not specified'}",
+        f"Style: {', '.join(preferences.get('style_tags') or preferences.get('style_chips') or []) or 'Not specified'}",
+        f"Budget band: {preferences.get('budget_band') or 'Not specified'}",
+        f"Selected direction: {selected_direction.get('title') or selected_direction.get('pipeline_direction_key') or 'Not selected'}",
+    ]
+
+    if budget:
+        estimated_total = budget.get("estimated_total") if isinstance(budget, dict) else None
+        if estimated_total is not None:
+            lines.append(f"Estimated total: {_money(estimated_total)}")
+
+    if materials:
+        lines.extend(["", "Materials:"])
+        for material in materials[:20]:
+            lines.append(
+                f"- {material.get('name')} ({material.get('category')}) {_money(material.get('price')) or ''}".strip()
+            )
+
+    if ai_deliverable.get("document_markdown"):
+        lines.extend(["", "AI brief:", ai_deliverable["document_markdown"][:1200]])
+
+    return lines
+
+
+def _make_simple_pdf(lines):
+    wrapped_lines = []
+    for line in lines:
+        wrapped = wrap(str(line), width=88) or [""]
+        wrapped_lines.extend(wrapped)
+
+    content_lines = ["BT", "/F1 11 Tf", "50 760 Td", "14 TL"]
+    for line in wrapped_lines[:48]:
+        content_lines.append(f"({_pdf_escape(line)}) Tj")
+        content_lines.append("T*")
+    content_lines.append("ET")
+    content = "\n".join(content_lines).encode("latin-1", errors="replace")
+
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(content)).encode("ascii") + b" >>\nstream\n" + content + b"\nendstream",
+    ]
+
+    pdf = BytesIO()
+    pdf.write(b"%PDF-1.4\n")
+    offsets = []
+    for index, obj in enumerate(objects, start=1):
+        offsets.append(pdf.tell())
+        pdf.write(f"{index} 0 obj\n".encode("ascii"))
+        pdf.write(obj)
+        pdf.write(b"\nendobj\n")
+
+    xref_start = pdf.tell()
+    pdf.write(f"xref\n0 {len(objects) + 1}\n".encode("ascii"))
+    pdf.write(b"0000000000 65535 f \n")
+    for offset in offsets:
+        pdf.write(f"{offset:010d} 00000 n \n".encode("ascii"))
+    pdf.write(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_start}\n%%EOF\n".encode("ascii")
+    )
+    return pdf.getvalue()
+
+
+def download_project_brief_pdf(project_id: int, request=None):
+    project = get_project(project_id, request)
+    pdf_bytes = _make_simple_pdf(_brief_lines(project))
+    filename = f"alignspace-project-{project_id}-brief.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
