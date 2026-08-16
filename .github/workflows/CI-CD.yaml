@@ -1,71 +1,107 @@
-name: Deployment Pipeline
+name: Test and Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
-  ci:
-    name: Test & Lint
+  # ── Runs on every PR and every push to main ──
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      # --- Frontend ---
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: as-ai-web/package-lock.json
+          python-version: "3.12"
 
-      - name: Install frontend dependencies
-        run: npm install
-        working-directory: as-ai-web   # adjust to your frontend folder
-
-      - name: Lint frontend
-        run: npm run lint
-        working-directory: as-ai-web
-
-      - name: Test frontend
-        run: npm test -- --watchAll=false
-        working-directory: as-ai-web
-
-      # --- Backend ---
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install backend dependencies
-        run: pip install -r requirements.txt
-        working-directory: as-ai-server   # adjust to your backend folder
-
-      - name: Lint backend
-        run: pylint src/   # adjust to your source folder
-        working-directory: as-ai-server
-
-      - name: Test backend
-        run: pytest
-        working-directory: as-ai-server
-
-  deploy:
-    name: Deploy to DigitalOcean
-    needs: ci
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install doctl
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-
-      - name: Trigger DigitalOcean App Platform deploy
+      - name: Backend lint + tests
         run: |
-          doctl apps create-deployment ${{ secrets.DO_APP_ID }}
+          cd as-ai-server
+          pip install -r requirements.txt
+          ruff check .
+          pytest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Frontend lint
+        run: |
+          cd frontend
+          npm ci
+          npm run lint
+
+  # ── main only: build Next.js on GitHub's 7GB runner, not the 4GB Droplet ──
+  build-frontend:
+    needs: test
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build standalone bundle
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_API_URL: /api
+          NEXT_PUBLIC_BACKEND_URL: /api
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: frontend/.next/standalone
+          include-hidden-files: true
+
+  # ── main only: ship it ──
+  deploy:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: web-build
+
+      - name: Rsync frontend bundle to Droplet
+        uses: easingthemes/ssh-deploy@v5.1.2
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.DROPLET_IP }}
+          REMOTE_USER: deploy
+          SOURCE: "web-build/"
+          TARGET: "/var/www/AlignSpace_SPARC2026/frontend"
+
+      - name: Update backend, migrate, restart services
+        uses: appleboy/ssh-action@v1        # version-pinned, never @master
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: deploy
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/AlignSpace_SPARC2026
+            git pull origin main
+
+            cd as-ai-server
+            source venv/bin/activate
+            pip install -r requirements.txt
+            alembic upgrade head
+
+            sudo systemctl restart designos-api
+            sudo systemctl restart designos-worker
+            sudo systemctl restart designos-web
+
+            echo "✓ Deployment complete"
