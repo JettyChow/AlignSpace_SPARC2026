@@ -5,6 +5,7 @@ import DarkScene from '@/components/frame/DarkScene';
 import { Mark } from '@/components/Logo';
 import Icon from '@/components/Icon';
 import { runIntake } from '@/services/pipeline.service';
+import { generateProject } from '@/services/project.service';
 import { ApiError } from '@/services/apiClient';
 
 // Only 2 stages — /intake extracts intent and ranks directions. Materials
@@ -16,7 +17,48 @@ const PROCESS_STAGES = [
   { icon: 'hexagon', label: 'Generating design directions' },
 ];
 
-export default function ProcessingScreen({ brief, onDone }) {
+// TEMP-ID placeholders (see useAppStore.js's makeTempId) are non-numeric
+// strings like "proj_ab12cd34"; real main-backend project ids are integers.
+function looksLikeRealProjectId(id) {
+  return Number.isFinite(Number(id));
+}
+
+// Normalize the main backend's /generate directions shape (direction_id,
+// pipeline_direction_key, title, match_percent, ...) into the shape
+// DiscoveryScreen.jsx already reads (key, name, match_score), carrying
+// direction_id through so discovery/page.jsx can select by id afterwards.
+function normalizeGenerateResult(result) {
+  return {
+    profile: result.profile,
+    directions: (result.directions || []).map((d) => ({
+      direction_id: d.direction_id,
+      key: d.pipeline_direction_key,
+      name: d.title,
+      blurb: d.blurb,
+      tags: d.tags,
+      match_score: (d.match_percent ?? 0) / 100,
+    })),
+  };
+}
+
+// Prefer the main backend's project-scoped /generate — it keeps the browser
+// off the raw AI pipeline entirely. Fall back to calling as-ai-server's
+// /intake directly (unchanged) when there's no real backend project yet, or
+// when the main backend call itself fails, so the documented as-ai-server
+// standalone/offline demo keeps working.
+async function fetchDirections(brief, projectId, getToken) {
+  if (projectId && looksLikeRealProjectId(projectId)) {
+    try {
+      const result = await generateProject(projectId, getToken);
+      return normalizeGenerateResult(result);
+    } catch {
+      // Main backend unreachable/rejected — fall through to the pipeline.
+    }
+  }
+  return runIntake(brief);
+}
+
+export default function ProcessingScreen({ brief, projectId, getToken, onDone }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [error, setError] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -34,7 +76,7 @@ export default function ProcessingScreen({ brief, onDone }) {
     // response; the real /intake call runs in parallel with it.
     const minDelay = new Promise((resolve) => setTimeout(resolve, 2200));
 
-    Promise.all([runIntake(brief), minDelay])
+    Promise.all([fetchDirections(brief, projectId, getToken), minDelay])
       .then(([result]) => {
         if (cancelled) return;
         onDone(result);
@@ -52,7 +94,7 @@ export default function ProcessingScreen({ brief, onDone }) {
       cancelled = true;
       clearTimeout(t1);
     };
-  }, [brief, attempt, onDone]);
+  }, [brief, projectId, getToken, attempt, onDone]);
 
   return (
     <DarkScene>

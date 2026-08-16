@@ -6,7 +6,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import DiscoveryScreen from '@/screens/explore/DiscoveryScreen';
 import { runAssemble } from '@/services/pipeline.service';
-import { updateProjectPreferences } from '@/services/project.service';
+import { updateProjectPreferences, selectDirection } from '@/services/project.service';
 
 export default function DiscoveryPage() {
   const directions = useAppStore((s) => s.directions);
@@ -35,16 +35,41 @@ export default function DiscoveryPage() {
     setError(null);
     setAssembling(true);
     try {
-      const deliverable = await runAssemble(fullBrief, directionKey);
-      setDeliverable(deliverable);
-      try {
-        // Persist the chosen direction on the real project record. Silently
-        // ignored if the main backend isn't reachable yet — the AI-pipeline
-        // deliverable itself is the source of truth for this session either way.
-        await updateProjectPreferences(projectId, { direction_key: directionKey }, getToken);
-      } catch {
-        // No main backend configured/running — nothing to persist to.
+      // direction_id is only present when `directions` came from the main
+      // backend's /generate (see ProcessingScreen.jsx's normalization) — the
+      // pipeline-fallback shape has no id to select by.
+      const dir = directions.find((d) => d.key === directionKey);
+      const canUseMainBackend =
+        dir?.direction_id != null && projectId && Number.isFinite(Number(projectId));
+
+      let deliverable;
+      let persistedByMainBackend = false;
+
+      if (canUseMainBackend) {
+        try {
+          deliverable = await selectDirection(projectId, dir.direction_id, getToken);
+          persistedByMainBackend = true;
+        } catch {
+          // Main backend unreachable/rejected — fall back to the raw pipeline.
+          deliverable = await runAssemble(fullBrief, directionKey);
+        }
+      } else {
+        deliverable = await runAssemble(fullBrief, directionKey);
       }
+
+      setDeliverable(deliverable);
+
+      if (!persistedByMainBackend) {
+        try {
+          // Persist the chosen direction on the real project record. Silently
+          // ignored if the main backend isn't reachable yet — the AI-pipeline
+          // deliverable itself is the source of truth for this session either way.
+          await updateProjectPreferences(projectId, { direction_key: directionKey }, getToken);
+        } catch {
+          // No main backend configured/running — nothing to persist to.
+        }
+      }
+
       go('/focus');
     } catch (err) {
       setError(err.message || 'Could not build the material package for this direction.');
