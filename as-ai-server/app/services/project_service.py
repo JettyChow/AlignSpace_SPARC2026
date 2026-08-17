@@ -189,10 +189,10 @@ def get_recent_projects(limit=5):
 
 
 def create_project(project, request=None):
-    project_id = project_store.create_project_id() or (max(projects.keys(), default=0) + 1)
     now = get_timestamp()
     current_user = _current_user(request)
     project_data = project.model_dump(exclude_none=True)
+    project_id = project_store.create_project_id(project_data, current_user) or (max(projects.keys(), default=0) + 1)
     style_tags = project_data.get("style_tags") or project_data.get("style_chips") or []
     priorities = project_data.get("priorities") or []
     room_type = project_data.get("room_type")
