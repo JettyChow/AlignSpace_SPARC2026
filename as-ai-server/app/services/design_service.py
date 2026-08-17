@@ -64,6 +64,7 @@ def shuffle_directions(project_id: int):
     directions.reverse()
     project["directions"] = directions
     project["updated_at"] = project_service.get_timestamp()
+    project_service.save_project(project)
 
     return {
         "status": "directions shuffled",
@@ -114,6 +115,7 @@ def update_material(project_id: int, material_id: int, status: str):
         if material["material_id"] == material_id:
             material["status"] = status
             project["updated_at"] = project_service.get_timestamp()
+            project_service.save_project(project)
 
             return {
                 "status": "material updated",
@@ -196,6 +198,7 @@ def recalculate_budget(project_id: int):
     budget = get_budget(project_id)
     project["budget"] = budget
     project["updated_at"] = project_service.get_timestamp()
+    project_service.save_project(project)
 
     return {
         "status": "budget recalculated",
@@ -238,6 +241,7 @@ def handoff_to_designer(project_id: int, handoff_request):
     project["handoff"] = handoff
     project["status"] = "sent_to_designer"
     project["updated_at"] = project_service.get_timestamp()
+    project_service.save_project(project)
 
     return {
         "status": "sent_to_designer",
