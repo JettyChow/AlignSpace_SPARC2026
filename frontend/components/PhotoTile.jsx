@@ -18,6 +18,7 @@ export default function PhotoTile({
   tone = 'oak',
   photo = false,
   photoPos = '50% 50%',
+  imageUrl,
   label,
   icon,
   height,
@@ -26,6 +27,10 @@ export default function PhotoTile({
   style = {},
 }) {
   const t = PHOTO_TONES[tone] || PHOTO_TONES.oak;
+  // `imageUrl` is a real per-item/per-direction photo (once supplied — see
+  // data/warmMinimalKitchen.js); `photo` alone falls back to the one generic
+  // stock scene shot other screens already use as decorative chrome.
+  const showPhoto = photo || Boolean(imageUrl);
   return (
     <div style={{
       position: 'relative',
@@ -36,11 +41,11 @@ export default function PhotoTile({
       background: t.grad,
       ...style,
     }}>
-      {photo && (
+      {showPhoto && (
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'url(/assets/scene-interior.png)',
+          backgroundImage: `url(${imageUrl || '/assets/scene-interior.png'})`,
           backgroundSize: 'cover',
           backgroundPosition: photoPos,
         }} />

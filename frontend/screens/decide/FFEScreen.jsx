@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import LightScene from '@/components/frame/LightScene';
 import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton } from '@/components/Buttons';
@@ -8,34 +8,26 @@ import PhotoTile from '@/components/PhotoTile';
 import StatusPill from '@/components/StatusPill';
 import GlassPanel from '@/components/GlassPanel';
 import Icon from '@/components/Icon';
+import { groupLineItems, categoryMeta } from '@/lib/materialCategories';
 
-const FFE = [
-  { id: 'materials', group: 'Materials', icon: 'layers', hero: { tone: 'oak', pos: '42% 80%' }, items: [
-    { name: 'White oak flooring',    tone: 'oak',       pos: '42% 80%' },
-    { name: 'Honed travertine wall', tone: 'travertine', pos: '30% 24%' },
-    { name: 'Lime plaster finish',   tone: 'warmwhite', pos: '8% 56%'  },
-  ]},
-  { id: 'fixtures', group: 'Fixtures', icon: 'faucet', hero: { tone: 'sand', pos: '55% 62%' }, items: [
-    { name: 'Brushed brass faucet set',  tone: 'sand',  pos: '55% 62%' },
-    { name: 'Rain shower head',          tone: 'stone', pos: '50% 30%' },
-    { name: 'Concealed linear drain',    tone: 'stone', pos: '40% 86%' },
-  ]},
-  { id: 'lighting', group: 'Lighting', icon: 'light', hero: { tone: 'warmwhite', pos: '78% 40%' }, items: [
-    { name: 'Warm LED plan',          tone: 'warmwhite', pos: '78% 32%' },
-    { name: 'Brass wall sconces',     tone: 'clay',      pos: '12% 48%' },
-    { name: 'Recessed ceiling spots', tone: 'warmwhite', pos: '50% 12%' },
-  ]},
-  { id: 'textiles', group: 'Textiles', icon: 'sofa', hero: { tone: 'linen', pos: '82% 58%' }, items: [
-    { name: 'Belgian linen drapery',   tone: 'linen', pos: '80% 36%' },
-    { name: 'Wool-blend rug',          tone: 'linen', pos: '30% 88%' },
-    { name: 'Bouclé accent cushions',  tone: 'linen', pos: '86% 60%' },
-  ]},
-  { id: 'surfaces', group: 'Surfaces', icon: 'tile', hero: { tone: 'stone', pos: '52% 64%' }, items: [
-    { name: 'Quartzite countertop', tone: 'stone',      pos: '54% 62%' },
-    { name: 'Zellige wall tile',    tone: 'travertine', pos: '25% 30%' },
-    { name: 'White oak cabinetry',  tone: 'oak',        pos: '6% 62%'  },
-  ]},
-];
+// Sections grouped by the same real line_items PackageScreen shows (see
+// lib/materialCategories.js) — item names here match Material List exactly,
+// since both screens read the same deliverable. `tone` is decorative
+// PhotoTile fallback chrome; `imageUrl` is a real photo when the deliverable
+// provides one (e.g. the kitchen demo fixture — the AI pipeline's LineItem
+// has no image field yet).
+function buildFFE(deliverable) {
+  const lineItems = deliverable?.package?.line_items ?? [];
+  return groupLineItems(lineItems).map((g) => {
+    const items = g.items.map((li) => ({
+      item_id: li.category,
+      item_name: li.product_name,
+      tone: categoryMeta(li.category).tone,
+      imageUrl: li.imageUrl,
+    }));
+    return { id: g.id, group: g.label, icon: g.icon, hero: items[0], items };
+  });
+}
 
 function ProgressRing({ pct, size = 64 }) {
   const r = (size - 8) / 2;
@@ -48,9 +40,9 @@ function ProgressRing({ pct, size = 64 }) {
   );
 }
 
-function ItemTile({ tone, pos, label, height }) {
+function ItemTile({ tone, imageUrl, label, height }) {
   return (
-    <PhotoTile tone={tone} photo photoPos={pos} height={height} radius={0}>
+    <PhotoTile tone={tone} imageUrl={imageUrl} height={height} radius={0}>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(20,15,10,0.55) 100%)' }} />
       {label && (
         <div style={{ position: 'absolute', left: 18, bottom: 13, whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 15.5, fontWeight: 600, color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,0.55)' }}>{label}</div>
@@ -79,20 +71,34 @@ function FFEGroup({ g, confirmedSection, open, onToggle }) {
       </button>
       {open ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {g.items.map((it, i) => <ItemTile key={i} tone={it.tone} pos={it.pos} label={it.name} height={104} />)}
+          {g.items.map((it) => <ItemTile key={it.item_id} tone={it.tone} imageUrl={it.imageUrl} label={it.item_name} height={104} />)}
         </div>
       ) : (
-        <ItemTile tone={g.hero.tone} pos={g.hero.pos} height={96} />
+        <ItemTile tone={g.hero?.tone} imageUrl={g.hero?.imageUrl} height={96} />
       )}
     </div>
   );
 }
 
-export default function FFEScreen({ confirmed = [], onBack, onContinue, onMenu }) {
+export default function FFEScreen({ deliverable, confirmed = [], onBack, onContinue, onMenu }) {
+  const FFE = useMemo(() => buildFFE(deliverable), [deliverable]);
   const [open, setOpen] = useState('materials');
 
-  const done = FFE.filter(g => confirmed.includes(g.id)).length;
+  if (!FFE.length) {
+    return (
+      <LightScene>
+        <AppBar onBack={onBack} eyebrow="Step 3 · Decisions" title="Decision tracker" onMenu={onMenu} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.6)' }}>
+            No material package yet — pick a direction to generate one.
+          </span>
+        </div>
+      </LightScene>
+    );
+  }
+
   const total = FFE.length;
+  const done = FFE.filter(g => confirmed.includes(g.id)).length;
   const pct = Math.round(done / total * 100);
 
   const headline = done === 0

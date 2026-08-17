@@ -8,7 +8,7 @@ import { PrimaryButton } from '@/components/Buttons';
 import Field from '@/components/Field';
 import Icon from '@/components/Icon';
 
-export default function LoginScreen({ role, onLogin, onBack, onSignup }) {
+export default function LoginScreen({ role, onLogin, onBack, onSignup, onForgotPassword, loading, error }) {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
@@ -43,9 +43,14 @@ export default function LoginScreen({ role, onLogin, onBack, onSignup }) {
           <Field label="Password" icon="lock" type={show ? 'text' : 'password'} placeholder="Enter your password" value={pw} onChange={(e) => setPw(e.target.value)}
             trailing={<button onClick={() => setShow(s => !s)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}><Icon name="eye" size={20} color="rgba(255,255,255,0.55)" stroke={1.6} /></button>} />
           <div style={{ textAlign: 'right', marginTop: -6, marginBottom: 22 }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--champagne)', cursor: 'pointer' }}>Forgot password?</span>
+            <span onClick={onForgotPassword} style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--champagne)', cursor: 'pointer' }}>Forgot password?</span>
           </div>
-          <PrimaryButton onClick={onLogin}>Login</PrimaryButton>
+          {error && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e08787', marginTop: -12, marginBottom: 18 }}>{error}</div>
+          )}
+          <PrimaryButton onClick={() => onLogin?.({ email, pw })} style={{ opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Logging in…' : 'Login'}
+          </PrimaryButton>
           <div style={{ display: 'flex', justifyContent: 'center', margin: '22px 0 16px' }}>
             <FloralDivider width={180} color="rgba(255,255,255,0.35)" />
           </div>

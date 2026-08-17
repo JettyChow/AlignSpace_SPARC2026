@@ -1,4 +1,5 @@
 import './globals.css';
+import { ClerkProvider } from '@clerk/nextjs';
 import AppShell from '@/components/AppShell';
 
 export const metadata = {
@@ -8,10 +9,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
-        <AppShell>{children}</AppShell>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          <AppShell>{children}</AppShell>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
