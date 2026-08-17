@@ -2,10 +2,13 @@ import os
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 from fastapi import HTTPException
 
 from app.services import project_service
 
+
+load_dotenv()
 
 SOCKET_EVENTS = [
     "preferences_complete",
