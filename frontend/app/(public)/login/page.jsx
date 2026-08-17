@@ -56,6 +56,7 @@ export default function LoginPage() {
       onBack={back}
       onLogin={handleLogin}
       onSignup={() => go('/signup')}
+      onForgotPassword={() => go('/forgot-password')}
       loading={loading}
       error={error}
     />

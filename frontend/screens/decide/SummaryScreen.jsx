@@ -5,34 +5,38 @@ import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton, GlassButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
-import { preset, budget as BUDGET, primaryTotal, GROUPS } from '@/data/warmMinimalKitchenFixture';
+import { GROUP_LABELS, groupLineItems } from '@/lib/materialCategories';
 
-// Real PRESETS row (+ its ROOM_TYPES/STYLES/BUDGETS joins) from the "Warm
-// Minimal Kitchen" preset in alignspace dataset.xlsx — field names mirror
-// the DBML schema so a real fetch is a drop-in swap.
-const PROJECT = {
-  proj_id: 1,
-  proj_title: preset.preset_name,
-  roomType: { roomType_id: 1, roomType_name: preset.roomType_name },
-  styles: [{ sty_id: 1, sty_name: preset.sty_name }],
-};
+export default function SummaryScreen({ deliverable, roomType, role, confirmed = [], onBack, onHandoff, onMenu }) {
+  const direction = deliverable?.chosen_direction;
+  const pkg = deliverable?.package;
+  const budget = deliverable?.budget;
 
-// A representative outstanding-decision label per unconfirmed group.
-const OUTSTANDING_LABELS = {
-  materials: 'Cabinet, countertop & backsplash selections',
-  fixtures: 'Faucet, hardware & sink selections',
-  lighting: 'Pendant lighting selection',
-};
+  const grouped = groupLineItems(pkg?.line_items ?? []);
+  const presentGroups = grouped.map((g) => g.id);
+  const confirmedCount = presentGroups.filter((g) => confirmed.includes(g)).length;
+  const completionPercent = presentGroups.length
+    ? Math.round((confirmedCount / presentGroups.length) * 100)
+    : 0;
+  const outstandingGroups = grouped.filter((g) => !confirmed.includes(g.id));
 
-export default function SummaryScreen({ role, confirmed = [], onBack, onHandoff, onMenu }) {
-  const confirmedCount = GROUPS.filter((g) => confirmed.includes(g)).length;
-  const completionPercent = Math.round((confirmedCount / GROUPS.length) * 100);
-  const outstandingGroups = GROUPS.filter((g) => !confirmed.includes(g));
+  const roomTypeLabel = roomType
+    ? roomType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+    : 'Renovation';
 
   const STATS = [
-    { icon: 'sparkle', label: 'Direction selected', value: PROJECT.styles[0]?.sty_name, meta: PROJECT.roomType.roomType_name },
-    { icon: 'layers', label: 'FFE status', value: `${confirmedCount} of ${GROUPS.length} confirmed`, meta: `${completionPercent}% complete` },
-    { icon: 'dollar', label: 'Budget summary', value: `$${(primaryTotal / 1000).toFixed(1)}K`, meta: `Within $${Math.round(BUDGET.bud_maxAmount / 1000)}K` },
+    { icon: 'sparkle', label: 'Direction selected', value: direction?.name || '—', meta: roomTypeLabel },
+    { icon: 'layers', label: 'FFE status', value: `${confirmedCount} of ${presentGroups.length} confirmed`, meta: `${completionPercent}% complete` },
+    {
+      icon: 'dollar',
+      label: 'Budget summary',
+      value: pkg ? `$${(pkg.estimated_total / 1000).toFixed(1)}K` : '—',
+      meta: budget
+        ? budget.status === 'within'
+          ? `Within $${Math.round(budget.band_ceiling / 1000)}K`
+          : `Over by $${Math.round(budget.overage / 1000)}K`
+        : '',
+    },
   ];
 
   return (
@@ -42,11 +46,11 @@ export default function SummaryScreen({ role, confirmed = [], onBack, onHandoff,
 
         {/* project header card — white card with scene photo */}
         <div style={{ borderRadius: 24, overflow: 'hidden', background: '#fff', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', marginBottom: 18 }}>
-          <PhotoTile tone="travertine" photo photoPos="64% 46%" height={140} radius={0}>
+          <PhotoTile tone="travertine" imageUrl={direction?.imageUrl} height={140} radius={0}>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,11,8,0.6))' }} />
             <div style={{ position: 'absolute', bottom: 14, left: 16, right: 16 }}>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>{PROJECT.roomType.roomType_name.toUpperCase()}</div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{PROJECT.proj_title}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.05em' }}>{roomTypeLabel.toUpperCase()}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{direction?.name || 'Renovation project'}</div>
             </div>
           </PhotoTile>
         </div>
@@ -70,9 +74,11 @@ export default function SummaryScreen({ role, confirmed = [], onBack, onHandoff,
           <div style={{ marginTop: 10, padding: 18, borderRadius: 20, background: 'rgba(212,164,90,0.1)', border: '1px solid rgba(212,164,90,0.28)' }}>
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, marginBottom: 10, color: 'rgb(255,255,255)' }}>{outstandingGroups.length} outstanding decisions</div>
             {outstandingGroups.map((g) => (
-              <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
                 <span style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--warning)', display: 'inline-block' }} />
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>{OUTSTANDING_LABELS[g]}</span>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgb(228,210,194)' }}>
+                  {GROUP_LABELS[g.id]}: {g.items.map((li) => li.product_name).join(', ')}
+                </span>
               </div>
             ))}
           </div>

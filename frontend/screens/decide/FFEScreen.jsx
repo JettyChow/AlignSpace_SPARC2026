@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import LightScene from '@/components/frame/LightScene';
 import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton } from '@/components/Buttons';
@@ -8,28 +8,26 @@ import PhotoTile from '@/components/PhotoTile';
 import StatusPill from '@/components/StatusPill';
 import GlassPanel from '@/components/GlassPanel';
 import Icon from '@/components/Icon';
-import { GROUPS, GROUP_LABELS, GROUP_ICONS, itemsInGroup } from '@/data/warmMinimalKitchenFixture';
+import { groupLineItems, categoryMeta } from '@/lib/materialCategories';
 
-// Sections grouped by the same real item_category data PackageScreen uses
-// (see warmMinimalKitchenFixture.js) — item names here now match Material
-// List exactly, since both screens read the same source. `tone`/`pos` stay
-// decorative PhotoTile props: there's no image column populated on ITEMS
-// yet (every img_url/item_imageUrl cell in the source xlsx is empty).
-const FFE = GROUPS.map((group) => {
-  const items = itemsInGroup(group).map((c) => ({
-    item_id: c.primary.item_id,
-    item_name: c.primary.item_name,
-    tone: c.primary.tone,
-    pos: c.primary.pos,
-  }));
-  return {
-    id: group,
-    group: GROUP_LABELS[group],
-    icon: GROUP_ICONS[group],
-    hero: { tone: items[0].tone, pos: items[0].pos },
-    items,
-  };
-});
+// Sections grouped by the same real line_items PackageScreen shows (see
+// lib/materialCategories.js) — item names here match Material List exactly,
+// since both screens read the same deliverable. `tone` is decorative
+// PhotoTile fallback chrome; `imageUrl` is a real photo when the deliverable
+// provides one (e.g. the kitchen demo fixture — the AI pipeline's LineItem
+// has no image field yet).
+function buildFFE(deliverable) {
+  const lineItems = deliverable?.package?.line_items ?? [];
+  return groupLineItems(lineItems).map((g) => {
+    const items = g.items.map((li) => ({
+      item_id: li.category,
+      item_name: li.product_name,
+      tone: categoryMeta(li.category).tone,
+      imageUrl: li.imageUrl,
+    }));
+    return { id: g.id, group: g.label, icon: g.icon, hero: items[0], items };
+  });
+}
 
 function ProgressRing({ pct, size = 64 }) {
   const r = (size - 8) / 2;
@@ -42,9 +40,9 @@ function ProgressRing({ pct, size = 64 }) {
   );
 }
 
-function ItemTile({ tone, pos, label, height }) {
+function ItemTile({ tone, imageUrl, label, height }) {
   return (
-    <PhotoTile tone={tone} photo photoPos={pos} height={height} radius={0}>
+    <PhotoTile tone={tone} imageUrl={imageUrl} height={height} radius={0}>
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(20,15,10,0.55) 100%)' }} />
       {label && (
         <div style={{ position: 'absolute', left: 18, bottom: 13, whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', fontSize: 15.5, fontWeight: 600, color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,0.55)' }}>{label}</div>
@@ -73,20 +71,34 @@ function FFEGroup({ g, confirmedSection, open, onToggle }) {
       </button>
       {open ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {g.items.map((it) => <ItemTile key={it.item_id} tone={it.tone} pos={it.pos} label={it.item_name} height={104} />)}
+          {g.items.map((it) => <ItemTile key={it.item_id} tone={it.tone} imageUrl={it.imageUrl} label={it.item_name} height={104} />)}
         </div>
       ) : (
-        <ItemTile tone={g.hero.tone} pos={g.hero.pos} height={96} />
+        <ItemTile tone={g.hero?.tone} imageUrl={g.hero?.imageUrl} height={96} />
       )}
     </div>
   );
 }
 
-export default function FFEScreen({ confirmed = [], onBack, onContinue, onMenu }) {
+export default function FFEScreen({ deliverable, confirmed = [], onBack, onContinue, onMenu }) {
+  const FFE = useMemo(() => buildFFE(deliverable), [deliverable]);
   const [open, setOpen] = useState('materials');
 
-  const done = FFE.filter(g => confirmed.includes(g.id)).length;
+  if (!FFE.length) {
+    return (
+      <LightScene>
+        <AppBar onBack={onBack} eyebrow="Step 3 · Decisions" title="Decision tracker" onMenu={onMenu} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.6)' }}>
+            No material package yet — pick a direction to generate one.
+          </span>
+        </div>
+      </LightScene>
+    );
+  }
+
   const total = FFE.length;
+  const done = FFE.filter(g => confirmed.includes(g.id)).length;
   const pct = Math.round(done / total * 100);
 
   const headline = done === 0

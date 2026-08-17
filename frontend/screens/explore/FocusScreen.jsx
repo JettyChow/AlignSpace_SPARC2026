@@ -60,7 +60,9 @@ function SceneTag({ t, active, onClick }) {
   );
 }
 
-export default function FocusScreen({ onBack, onContinue, onMenu }) {
+export default function FocusScreen({ deliverable, onBack, onContinue, onMenu }) {
+  const direction = deliverable?.chosen_direction;
+  const matchPercent = direction ? Math.round((direction.match_score || 0) * 100) : null;
   const [saved, setSaved] = useState(false);
   const [active, setActive] = useState(0);
   const scrollRef = useRef(null);
@@ -78,8 +80,8 @@ export default function FocusScreen({ onBack, onContinue, onMenu }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-      {/* full-bleed scene image */}
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/assets/scene-interior.png)', backgroundSize: 'cover', backgroundPosition: '58% 46%' }} />
+      {/* full-bleed scene image — the chosen direction's real photo when available */}
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${direction?.imageUrl || '/assets/scene-interior.png'})`, backgroundSize: 'cover', backgroundPosition: '58% 46%' }} />
       {/* gradient overlay */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(14,11,8,0.5) 0%, rgba(14,11,8,0.12) 22%, rgba(14,11,8,0.05) 42%, rgba(12,9,6,0.30) 60%, rgba(10,8,5,0.78) 82%, rgba(8,6,4,0.92) 100%)' }} />
 
@@ -88,8 +90,10 @@ export default function FocusScreen({ onBack, onContinue, onMenu }) {
         <RoundIconButton icon="arrowLeft" dark onClick={onBack} />
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 34, padding: '0 14px', borderRadius: 999, whiteSpace: 'nowrap', flex: 'none', background: 'rgba(20,16,12,0.42)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.26)' }}>
           <Icon name="sparkle" size={14} color="var(--champagne)" stroke={1.6} />
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#fff' }}>Warm Minimal</span>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'var(--champagne)' }}>92%</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#fff' }}>{direction?.name || 'Your direction'}</span>
+          {matchPercent != null && (
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 600, color: 'var(--champagne)' }}>{matchPercent}%</span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <RoundIconButton icon={saved ? 'check' : 'bookmark'} dark onClick={() => setSaved(s => !s)} />

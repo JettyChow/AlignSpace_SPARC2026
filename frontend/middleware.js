@@ -3,7 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 // Mirrors the app/(public) vs app/(protected) route-group split — Next route
 // groups don't affect the URL, so the actual public paths are listed here by
 // hand. Keep in sync with app/(public)/*.
-const isPublicRoute = createRouteMatcher(['/', '/role', '/login(.*)', '/signup(.*)']);
+const isPublicRoute = createRouteMatcher(['/', '/role', '/login(.*)', '/signup(.*)', '/forgot-password(.*)']);
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
