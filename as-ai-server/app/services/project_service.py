@@ -5,7 +5,7 @@ from textwrap import wrap
 from fastapi import HTTPException
 from fastapi.responses import Response
 
-from app.services import auth_service
+from app.services import auth_service, project_store
 
 
 projects = {}
@@ -41,6 +41,21 @@ def _money(value):
 
 def _current_user(request=None):
     return auth_service.current_user_from_request(request)
+
+
+def _memory_projects_for_user(current_user):
+    return [
+        project
+        for project in projects.values()
+        if _project_belongs_to_user(project, current_user)
+    ]
+
+
+def save_project(project):
+    """Persist a project after services mutate the existing API shape."""
+    projects[project["project_id"]] = project
+    project_store.save_project(project)
+    return project
 
 
 def _project_belongs_to_user(project, current_user):
@@ -143,32 +158,38 @@ def build_project_summary(project):
 
 def list_projects(request=None):
     current_user = _current_user(request)
+    stored_projects = project_store.list_projects(current_user.get("clerk_user_id"))
+    source_projects = stored_projects if stored_projects is not None else _memory_projects_for_user(current_user)
+
     return {
         "projects": [
             build_project_summary(project)
-            for project in projects.values()
-            if _project_belongs_to_user(project, current_user)
+            for project in source_projects
         ]
     }
 
 
-def get_recent_projects():
-    recent_projects = sorted(
-        projects.values(),
-        key=lambda project: project["created_at"],
-        reverse=True
-    )
+def get_recent_projects(limit=5):
+    stored_projects = project_store.list_projects(limit=limit)
+    if stored_projects is not None:
+        recent_projects = stored_projects
+    else:
+        recent_projects = sorted(
+            projects.values(),
+            key=lambda project: project["created_at"],
+            reverse=True
+        )[:limit]
 
     return {
         "projects": [
             build_project_summary(project)
-            for project in recent_projects[:5]
+            for project in recent_projects
         ]
     }
 
 
 def create_project(project, request=None):
-    project_id = len(projects) + 1
+    project_id = project_store.create_project_id() or (max(projects.keys(), default=0) + 1)
     now = get_timestamp()
     current_user = _current_user(request)
     project_data = project.model_dump(exclude_none=True)
@@ -230,10 +251,15 @@ def create_project(project, request=None):
         "handoff": None
     }
 
+    save_project(projects[project_id])
     return apply_frontend_aliases(projects[project_id])
 
 
 def get_project(project_id: int, request=None):
+    stored_project = project_store.get_project(project_id)
+    if stored_project is not None:
+        projects[project_id] = stored_project
+
     if project_id not in projects:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -259,12 +285,14 @@ def update_project(project_id: int, project, request=None):
     existing_project["status"] = "updated"
     existing_project["updated_at"] = get_timestamp()
 
+    save_project(existing_project)
     return apply_frontend_aliases(existing_project)
 
 
 def delete_project(project_id: int, request=None):
     get_project(project_id, request)
     deleted_project = projects.pop(project_id)
+    project_store.delete_project(project_id)
 
     return {
         "status": "deleted",
@@ -284,6 +312,7 @@ def add_chat_message(project_id: int, chat, request=None):
     message_record["clerk_user_id"] = current_user.get("clerk_user_id")
     project["chat_messages"].append(message_record)
     project["updated_at"] = get_timestamp()
+    save_project(project)
 
     return {
         "status": "message added",
@@ -330,6 +359,7 @@ def update_preferences(project_id: int, preferences, request=None):
 
     project["status"] = "intake_updated"
     project["updated_at"] = get_timestamp()
+    save_project(project)
 
     return {
         "status": "preferences updated",
@@ -356,6 +386,7 @@ def add_image(project_id: int, image, request=None):
 
     project["images"].append(image_record)
     project["updated_at"] = get_timestamp()
+    save_project(project)
 
     return {
         "status": "image added",

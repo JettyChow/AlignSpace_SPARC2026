@@ -180,6 +180,7 @@ def generate_project(project_id: int):
 
     project["status"] = "directions_ready"
     project["updated_at"] = project_service.get_timestamp()
+    project_service.save_project(project)
 
     return {
         "status": "generation complete",
@@ -217,6 +218,7 @@ def assemble_project_direction(project_id: int, direction: dict[str, Any]) -> di
     project["ai_deliverable"] = deliverable
     project["status"] = "direction_selected"
     project["updated_at"] = project_service.get_timestamp()
+    project_service.save_project(project)
     return deliverable
 
 

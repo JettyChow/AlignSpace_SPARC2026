@@ -8,12 +8,17 @@ from fastapi.testclient import TestClient
 
 from app.database import get_db
 from app.main import app
-from app.services import auth_service, catalog_service, pipeline_service, project_service
+from app.services import auth_service, catalog_service, pipeline_service, project_service, project_store
 
 
 @pytest.fixture(autouse=True)
-def clear_projects():
+def clear_projects(monkeypatch):
     project_service.projects.clear()
+    monkeypatch.setattr(project_store, "create_project_id", lambda: None)
+    monkeypatch.setattr(project_store, "save_project", lambda project: False)
+    monkeypatch.setattr(project_store, "get_project", lambda project_id: None)
+    monkeypatch.setattr(project_store, "list_projects", lambda clerk_user_id=None, limit=None: None)
+    monkeypatch.setattr(project_store, "delete_project", lambda project_id: False)
 
 
 @pytest.fixture
@@ -207,6 +212,32 @@ def test_project_created_with_clerk_token_includes_client_metadata(client, monke
     assert body["clerk_user_id"] == "user_clerk_123"
     assert body["client"]["display_name"] == "Adam Tschida"
     assert body["proj_title"] == "Home Office"
+
+
+def test_project_apis_persist_through_project_store(client, monkeypatch):
+    stored_projects = {}
+
+    def save_project(project):
+        stored_projects[project["project_id"]] = project.copy()
+        return True
+
+    monkeypatch.setattr(project_store, "create_project_id", lambda: 42)
+    monkeypatch.setattr(project_store, "save_project", save_project)
+    monkeypatch.setattr(project_store, "get_project", lambda project_id: stored_projects.get(project_id))
+    monkeypatch.setattr(project_store, "list_projects", lambda clerk_user_id=None, limit=None: list(stored_projects.values()))
+
+    created = client.post("/projects", json={"title": "Persisted Office"}).json()
+    assert created["project_id"] == 42
+    assert stored_projects[42]["title"] == "Persisted Office"
+
+    project_service.projects.clear()
+
+    fetched = client.get("/projects/42")
+    assert fetched.status_code == 200
+    assert fetched.json()["proj_title"] == "Persisted Office"
+
+    projects = client.get("/projects").json()["projects"]
+    assert projects[0]["proj_id"] == 42
 
 
 def test_project_brief_pdf_download_returns_pdf(client):

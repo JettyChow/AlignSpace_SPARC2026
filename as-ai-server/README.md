@@ -121,6 +121,13 @@ It reads `preset_items` joined to `items` from Postgres and returns both
 frontend-friendly fields (`item_id`, `product_name`, `price`, `image_url`) and
 the original DBML-style aliases (`presetItem_*`, `item_*`) for compatibility.
 
+The project endpoints keep their existing frontend response shape and persist
+that project state to Postgres when `DATABASE_URL` is reachable. This covers
+project creation/list/detail/update/delete plus messages, preferences, images,
+generated directions, selected directions, materials, budget recalculation, and
+handoff state. If Postgres is unavailable in a local demo, the backend falls
+back to the original in-memory behavior so the prototype can still run.
+
 ### Turning on Claude
 
 Intent extraction uses a deterministic keyword fallback by default so demos and
