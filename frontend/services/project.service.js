@@ -6,10 +6,11 @@
 //   updateProjectPreferences(id, data)  -> POST   /projects/{project_id}/preferences
 //   updateProject(id, data)             -> PUT    /projects/{project_id}
 //   deleteProject(projectId)            -> DELETE /projects/{project_id}
+//   generateProject(id)                 -> POST   /projects/{project_id}/generate
+//   selectDirection(id, directionId)    -> POST   /projects/{project_id}/directions/select
 //
-// No backend instance runs in this repo (only as-ai-server, the AI pipeline,
-// does) — until NEXT_PUBLIC_BACKEND_URL points at a running one, every call
-// here rejects with an ApiError. Callers must show a real loading/empty/error
+// Until NEXT_PUBLIC_BACKEND_URL points at a running instance, every call here
+// rejects with an ApiError. Callers must show a real loading/empty/error
 // state, never fall back to invented project data.
 
 import { backendRequest, jsonBody } from './backendClient';
@@ -34,6 +35,26 @@ export async function updateProjectPreferences(projectId, preferences, getToken)
   return backendRequest(`/projects/${projectId}/preferences`, {
     method: 'POST',
     body: jsonBody(preferences),
+  }, getToken);
+}
+
+// Trigger the main backend to run the AI pipeline for an existing project
+// (preferences/chat_messages must already be populated via createProject /
+// updateProjectPreferences). Proxies as-ai-server's /intake server-side —
+// see as-ai-server/app/routers/pipeline.py.
+export async function generateProject(projectId, getToken) {
+  return backendRequest(`/projects/${projectId}/generate`, {
+    method: 'POST',
+  }, getToken);
+}
+
+// Persist the chosen direction and have the main backend assemble the
+// material package for it (proxies as-ai-server's /assemble server-side —
+// see as-ai-server/app/routers/design.py).
+export async function selectDirection(projectId, directionId, getToken) {
+  return backendRequest(`/projects/${projectId}/directions/select`, {
+    method: 'POST',
+    body: jsonBody({ direction_id: directionId }),
   }, getToken);
 }
 

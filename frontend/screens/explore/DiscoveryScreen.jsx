@@ -29,7 +29,7 @@ function DirectionCard({ dir, tone, isSelected, onClick }) {
       boxShadow: isSelected ? '0 0 0 1px rgba(198,163,107,0.3), 0 8px 24px rgba(0,0,0,0.28)' : '0 4px 16px rgba(0,0,0,0.18)',
       transition: 'all 200ms ease',
     }}>
-      <PhotoTile tone={tone} style={{ width: '100%', aspectRatio: '1/1.05', display: 'block' }} />
+      <PhotoTile tone={tone} imageUrl={dir.imageUrl} style={{ width: '100%', aspectRatio: '1/1.05', display: 'block' }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,7,4,0.72) 0%, transparent 55%)' }} />
       {isSelected && (
         <div style={{ position: 'absolute', top: 10, right: 10, width: 24, height: 24, borderRadius: '50%', background: 'var(--champagne)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
