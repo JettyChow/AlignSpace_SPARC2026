@@ -9,9 +9,24 @@ material) until it fits — mirroring how a designer trims a quote.
 from __future__ import annotations
 
 from ..models import MaterialPackage, ClientProfile, BudgetReport, Swap
-from ..presets import CATALOG, BUDGET_CEILINGS
+from ..presets import CATALOG, BUDGET_CEILINGS, MATERIALS_SHARE
 
 _TIER_DOWN = {"premium": "standard", "standard": "budget"}
+
+
+def materials_ceiling(profile: ClientProfile) -> tuple[float, str]:
+    """
+    The materials budget to validate against, and where it came from.
+
+    If the client stated a real project budget (profile.budget_max, extracted
+    from chat or the intake form), the ceiling is the materials share of that
+    figure — the catalog prices materials only, so comparing the package
+    against the *whole-project* number would make everything look cheap.
+    Otherwise fall back to the band's placeholder ceiling.
+    """
+    if profile.budget_max and profile.budget_max > 0:
+        return round(profile.budget_max * MATERIALS_SHARE, 2), "client_budget"
+    return BUDGET_CEILINGS.get(profile.budget_band, BUDGET_CEILINGS["medium"]), "band_default"
 
 
 def _cheaper_option(category: str, current_tier: str):
@@ -25,7 +40,7 @@ def _cheaper_option(category: str, current_tier: str):
 
 
 def validate_budget(package: MaterialPackage, profile: ClientProfile) -> BudgetReport:
-    ceiling = BUDGET_CEILINGS.get(profile.budget_band, BUDGET_CEILINGS["medium"])
+    ceiling, source = materials_ceiling(profile)
     total = package.estimated_total
 
     report = BudgetReport(
@@ -33,6 +48,8 @@ def validate_budget(package: MaterialPackage, profile: ClientProfile) -> BudgetR
         estimated_total=total,
         status="within" if total <= ceiling else "over",
         adjusted_total=total,
+        client_budget_max=profile.budget_max,
+        ceiling_source=source,
     )
 
     if report.status == "within":

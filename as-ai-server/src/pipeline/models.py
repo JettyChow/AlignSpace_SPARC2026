@@ -31,6 +31,7 @@ class ClientBrief:
     room_type: str = "bathroom"        # MVP supports bathroom only
     room_sqft: float = 40.0            # structured input → drives cost estimates
     budget_band: str = "medium"        # "low" | "medium" | "high"
+    budget_max: Optional[float] = None # client's stated *project* budget (USD)
     timeline_weeks: Optional[int] = None
     priorities: list[str] = field(default_factory=list)   # e.g. "more storage"
     style_chips: list[str] = field(default_factory=list)  # e.g. "modern", "warm"
@@ -49,6 +50,7 @@ class ClientProfile:
     must_haves: list[str] = field(default_factory=list)
     avoid: list[str] = field(default_factory=list)
     budget_band: str = "medium"
+    budget_max: Optional[float] = None     # stated project budget (USD), if captured
     extraction_source: str = "rule_based"  # "claude" or "rule_based" (fallback)
     notes: str = ""
 
@@ -119,6 +121,12 @@ class BudgetReport:
     overage: float = 0.0
     suggested_swaps: list[Swap] = field(default_factory=list)
     adjusted_total: float = 0.0       # total after applying suggested swaps
+    # Where band_ceiling came from. "client_budget" -> derived from the figure
+    # the client actually gave; "band_default" -> the placeholder band ceiling
+    # because no usable number was captured. The UI must not label a
+    # band_default ceiling as the client's "target" (it isn't one).
+    client_budget_max: Optional[float] = None
+    ceiling_source: str = "band_default"   # "client_budget" | "band_default"
 
 
 # ---------------------------------------------------------------------------

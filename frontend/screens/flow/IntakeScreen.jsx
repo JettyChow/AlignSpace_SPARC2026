@@ -13,6 +13,7 @@ function buildIntakeScript(userName) {
     { id: 'space', ai: `${hi} Let's start with the basics — what space are you renovating?`, chips: ['Living room', 'Kitchen', 'Master bedroom', 'Bathroom', 'Home office', 'Whole home'] },
     { id: 'goal', ai: "Love that. What's the primary goal for this renovation?", chips: ['Refresh the look', 'Better functionality', 'Increase home value', 'Create more space', 'Fix structural issues'] },
     { id: 'mood', ai: "What's your aesthetic direction? Pick the vibe that speaks to you.", chips: ['Warm minimal', 'Coastal calm', 'Modern luxe', 'Rustic chic', 'Bold & eclectic', 'Timeless classic'] },
+    { id: 'size', ai: 'Roughly how big is the space? A ballpark square footage is fine.', chips: ['Under 50 sqft', '50 – 150 sqft', '150 – 400 sqft', '400 – 1,000 sqft', '1,000+ sqft'] },
     { id: 'budget', ai: "Last question — what's your budget range for this project?", chips: ['Under $25k', '$25k – $50k', '$50k – $100k', '$100k – $250k', '$250k+'] },
   ];
 }
@@ -22,20 +23,57 @@ function buildIntakeScript(userName) {
 // package /assemble returns today will still be bathroom fixtures. That's a
 // backend scope limit, not something this screen can work around; flagged
 // for the AI pipeline team.
-const BUDGET_BAND_BY_LABEL = {
-  'Under $25k': 'low',
-  '$25k – $50k': 'low',
-  '$50k – $100k': 'medium',
-  '$100k – $250k': 'high',
-  '$250k+': 'high',
-};
+// The chips above are just pre-baked phrasings — chip taps and typed answers
+// both go through the number parsers below, so "$25k – $50k" and a typed
+// "we have about 50k" produce the same brief. (Previously only the five
+// exact chip strings mapped; anything typed silently became 'medium'.)
+
+// Largest dollar amount in the text, in USD ("$50k", "under $50,000",
+// "120 grand"). Mirrors parse_budget_max in as-ai-server's intent.py —
+// the backend re-extracts from chat_text anyway, but sending the number
+// explicitly is authoritative and works with the offline fallback too.
+function parseBudgetMax(text) {
+  const re = /\$\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|grand)?|(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|grand)\b/gi;
+  const mult = { k: 1000, grand: 1000, m: 1000000 };
+  let best = null;
+  for (const m of (text || '').matchAll(re)) {
+    const value = parseFloat((m[1] || m[3]).replace(/,/g, '')) * (mult[(m[2] || m[4] || '').toLowerCase()] || 1);
+    if (value >= 1000 && (best === null || value > best)) best = value;
+  }
+  return best;
+}
+
+// Largest plain number in the text, for the sqft answer ("50 – 150 sqft"
+// -> 150, "about 80" -> 80).
+function parseSqft(text) {
+  const nums = [...(text || '').matchAll(/\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?/g)]
+    .map((m) => parseFloat(m[0].replace(/,/g, '')))
+    .filter((n) => n > 0);
+  return nums.length ? Math.max(...nums) : null;
+}
+
+// Band from the stated budget — same buckets the old chip map used
+// (<= $50k low, <= $100k medium, above that high).
+function bandFromBudget(budgetMax) {
+  if (!budgetMax) return 'medium';
+  if (budgetMax <= 50000) return 'low';
+  if (budgetMax <= 100000) return 'medium';
+  return 'high';
+}
 
 // Turns the intake script's chip answers into the BriefRequest shape
 // as-ai-server's /intake and /assemble routes expect (see api_schemas.py).
 function toBrief(answers) {
+  const budgetMax = parseBudgetMax(answers.budget);
+  const roomSqft = parseSqft(answers.size);
   return {
     room_type: (answers.space || 'bathroom').toLowerCase().replace(/\s+/g, '_'),
-    budget_band: BUDGET_BAND_BY_LABEL[answers.budget] || 'medium',
+    budget_band: bandFromBudget(budgetMax),
+    // null when nothing parseable was given — the backend then falls back
+    // to its band ceiling and labels the report ceiling_source:'band_default'.
+    budget_max: budgetMax,
+    // Omit when unparseable so the backend's default (40) applies.
+    ...(roomSqft ? { room_sqft: roomSqft } : {}),
     priorities: answers.goal ? [answers.goal] : [],
     style_chips: answers.mood ? [answers.mood] : [],
     chat_text: Object.values(answers).filter(Boolean).join('. '),

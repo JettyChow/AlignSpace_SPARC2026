@@ -63,7 +63,14 @@ export default function BudgetScreen({ deliverable, onBack, onContinue, onMenu }
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(222,187,128,0.9)' }}>Estimated total</div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 52, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.05, margin: '6px 0 4px', color: 'rgb(255,255,255)' }}>${primaryTotal.toLocaleString()}</div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, color: 'rgb(182,182,182)' }}>
-            {budget.budget_band} budget · target was <strong style={{ color: 'rgb(255,255,255)' }}>${Math.round(budget.band_ceiling / 1000)}K</strong>
+            {/* band_ceiling is a *materials* allowance, never the client's whole
+                project budget — only call it theirs when it was actually derived
+                from a figure they gave (ceiling_source, see budget.py). */}
+            {budget.ceiling_source === 'client_budget' ? (
+              <>materials allowance <strong style={{ color: 'rgb(255,255,255)' }}>${Math.round(budget.band_ceiling).toLocaleString()}</strong> · from your ${Math.round(budget.client_budget_max).toLocaleString()} budget</>
+            ) : (
+              <>materials estimate · {budget.budget_band} band allows <strong style={{ color: 'rgb(255,255,255)' }}>${Math.round(budget.band_ceiling).toLocaleString()}</strong></>
+            )}
           </div>
         </div>
 

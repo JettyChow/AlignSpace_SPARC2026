@@ -18,7 +18,8 @@ scores toward a returning client's past picks. Left as a documented no-op.)
 from __future__ import annotations
 
 from ..models import ClientProfile, DesignDirection
-from ..presets import DIRECTIONS, BUDGET_CEILINGS
+from ..presets import DIRECTIONS
+from .budget import materials_ceiling
 
 
 def _score(profile_styles: dict[str, float], direction_tags: list[str]) -> float:
@@ -37,7 +38,7 @@ def _score(profile_styles: dict[str, float], direction_tags: list[str]) -> float
 
 def match_directions(profile: ClientProfile) -> list[DesignDirection]:
     """Return the 6 directions ranked by fit to the client profile."""
-    ceiling = BUDGET_CEILINGS.get(profile.budget_band, BUDGET_CEILINGS["medium"])
+    ceiling, _ = materials_ceiling(profile)
     results: list[DesignDirection] = []
 
     for d in DIRECTIONS:

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 from ..models import ClientBrief, ClientProfile
 
@@ -53,6 +54,36 @@ _FUNCTION_KEYWORDS = {
     "accessible": "accessibility", "grab bar": "accessibility",
     "clean": "easy to clean", "low maintenance": "easy to clean",
 }
+
+
+# Dollar amounts in free text, e.g. "$50k", "under $50,000", "50k budget",
+# "about 120 grand". Used by the offline fallback and as a backstop when the
+# form didn't capture a numeric budget.
+_MONEY_RE = re.compile(
+    r"\$\s*(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|grand)?"
+    r"|(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*(k|m|grand)\b",
+    re.IGNORECASE,
+)
+
+_MULT = {"k": 1_000, "grand": 1_000, "m": 1_000_000}
+
+
+def parse_budget_max(text: str) -> float | None:
+    """
+    Pull the client's stated budget (USD) out of free text, if any.
+
+    Takes the largest amount mentioned — "somewhere between $30k and $50k"
+    reads as a $50k ceiling. Amounts under $1,000 are ignored as noise
+    (quantities, "$40/sqft" unit prices, etc.).
+    """
+    best = None
+    for m in _MONEY_RE.finditer(text or ""):
+        num = m.group(1) or m.group(3)
+        suffix = (m.group(2) or m.group(4) or "").lower()
+        value = float(num.replace(",", "")) * _MULT.get(suffix, 1)
+        if value >= 1_000 and (best is None or value > best):
+            best = value
+    return best
 
 
 def _normalize(weights: dict[str, float]) -> dict[str, float]:
@@ -98,6 +129,7 @@ def _rule_based(brief: ClientBrief) -> ClientProfile:
         must_haves=list(brief.priorities),
         avoid=avoid,
         budget_band=brief.budget_band,
+        budget_max=brief.budget_max or parse_budget_max(text),
         extraction_source="rule_based",
         notes="Extracted with offline keyword model (no Claude key present).",
     )
@@ -107,10 +139,21 @@ _SYSTEM_PROMPT = (
     "You extract structured interior-design intent for a bathroom renovation. "
     "Return ONLY valid JSON, no prose, no markdown fences. Schema:\n"
     '{"styles": {"<style>": <0..1 float>}, "functions": ["..."], '
-    '"must_haves": ["..."], "avoid": ["..."]}\n'
+    '"must_haves": ["..."], "avoid": ["..."], "budget_max": <USD number or null>}\n'
     f"Use only these style words: {', '.join(STYLE_VOCAB)}. "
-    "Weights are relative importance, strongest = 1.0."
+    "Weights are relative importance, strongest = 1.0. "
+    "budget_max is the client's stated total project budget in USD "
+    "('under $50k' -> 50000); null if they never gave a figure."
 )
+
+
+def _as_float(value) -> float | None:
+    """Coerce the model's budget_max to a positive float, else None."""
+    try:
+        f = float(value)
+        return f if f > 0 else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _claude(brief: ClientBrief) -> ClientProfile:
@@ -120,7 +163,8 @@ def _claude(brief: ClientBrief) -> ClientProfile:
     client = anthropic.Anthropic()
     user = (
         f"Room: {brief.room_type}\nBudget band: {brief.budget_band}\n"
-        f"Style chips: {', '.join(brief.style_chips) or 'none'}\n"
+        + (f"Stated budget: ${brief.budget_max:,.0f}\n" if brief.budget_max else "")
+        + f"Style chips: {', '.join(brief.style_chips) or 'none'}\n"
         f"Priorities: {', '.join(brief.priorities) or 'none'}\n"
         f'Client said: "{brief.chat_text}"'
     )
@@ -140,6 +184,11 @@ def _claude(brief: ClientBrief) -> ClientProfile:
         must_haves=list(data.get("must_haves", brief.priorities)),
         avoid=list(data.get("avoid", [])),
         budget_band=brief.budget_band,
+        # Form input is authoritative; the model's read of the chat fills in
+        # when the form didn't capture a number; regex is the last resort.
+        budget_max=brief.budget_max
+        or _as_float(data.get("budget_max"))
+        or parse_budget_max(brief.chat_text),
         extraction_source="claude",
         notes="Extracted with Claude API.",
     )

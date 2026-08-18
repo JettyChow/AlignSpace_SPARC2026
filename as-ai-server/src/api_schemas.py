@@ -25,6 +25,12 @@ class BriefRequest(BaseModel):
     room_type: str = "bathroom"
     room_sqft: float = Field(40.0, gt=0, description="Drives material quantities.")
     budget_band: str = Field("medium", description='"low" | "medium" | "high"')
+    budget_max: Optional[float] = Field(
+        None, gt=0,
+        description="Client's stated whole-project budget in USD (e.g. 50000 "
+                    "for 'under $50k'). When set, the budget agent derives its "
+                    "materials ceiling from this instead of the band default.",
+    )
     timeline_weeks: Optional[int] = None
     priorities: list[str] = Field(default_factory=list)
     style_chips: list[str] = Field(default_factory=list)
@@ -38,6 +44,7 @@ class BriefRequest(BaseModel):
             room_type=self.room_type,
             room_sqft=self.room_sqft,
             budget_band=self.budget_band,
+            budget_max=self.budget_max,
             timeline_weeks=self.timeline_weeks,
             priorities=self.priorities,
             style_chips=self.style_chips,

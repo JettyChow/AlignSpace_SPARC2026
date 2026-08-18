@@ -54,7 +54,13 @@ def _render_markdown(pkg: RenovationPackage) -> str:
     lines.append(f"| | | | | | **${m.estimated_total:,.0f}** | | |")
     lines.append("")
     lines.append("## Budget")
-    lines.append(f"- Band ceiling ({b.budget_band}): **${b.band_ceiling:,.0f}**")
+    if b.ceiling_source == "client_budget":
+        lines.append(
+            f"- Client budget: **${b.client_budget_max:,.0f}** "
+            f"(materials allowance: **${b.band_ceiling:,.0f}**)"
+        )
+    else:
+        lines.append(f"- Band ceiling ({b.budget_band}): **${b.band_ceiling:,.0f}**")
     lines.append(f"- Estimated total: **${b.estimated_total:,.0f}** — _{b.status}_")
     if b.status == "over":
         lines.append(f"- Over by: **${b.overage:,.0f}**")

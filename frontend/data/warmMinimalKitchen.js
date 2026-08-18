@@ -230,6 +230,10 @@ export function buildDemoDeliverable(directionKey) {
       overage: Math.max(0, ESTIMATED_TOTAL - BAND_CEILING),
       suggested_swaps: [], // every real Set B option here costs more, not less
       adjusted_total: ESTIMATED_TOTAL,
+      // Fixture predates a client-stated figure, so it uses the band default
+      // (see BudgetReport.ceiling_source in as-ai-server's models.py).
+      client_budget_max: null,
+      ceiling_source: 'band_default',
     },
   };
 }

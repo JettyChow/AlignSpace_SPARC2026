@@ -16,7 +16,7 @@ export async function getPresetDirections() {
 }
 
 // brief: { firm_id, project_id, room_type, room_sqft, budget_band,
-//          timeline_weeks, priorities, style_chips, chat_text }
+//          budget_max, timeline_weeks, priorities, style_chips, chat_text }
 export async function runIntake(brief) {
   const data = await apiRequest('/intake', {
     method: 'POST',

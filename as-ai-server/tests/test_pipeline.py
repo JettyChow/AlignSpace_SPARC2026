@@ -6,7 +6,7 @@ deterministic fallback, so CI is stable and fast.
 from __future__ import annotations
 
 from pipeline import ClientBrief, run_intake, run_for_direction, run_pipeline
-from pipeline.presets import DIRECTIONS, BUDGET_CEILINGS
+from pipeline.presets import DIRECTIONS, BUDGET_CEILINGS, MATERIALS_SHARE
 
 
 def _brief(**overrides) -> ClientBrief:
@@ -145,3 +145,51 @@ def test_medium_budget_picks_standard_not_all_budget():
     assert tiers.count("budget") <= 1, f"expected mostly standard tier, got {tiers}"
     # And we shouldn't be flagging nearly everything anymore.
     assert sum(1 for i in pkg.line_items if i.flagged) <= 2
+
+
+# ---------------------------------------------------------------------------
+# Client-stated budget (budget_max) — extraction + ceiling derivation
+# ---------------------------------------------------------------------------
+
+def test_offline_extractor_parses_budget_from_chat():
+    """'under $50k' typed in chat must survive into the profile as a number."""
+    profile, _ = run_intake(_brief(chat_text="warm minimal bathroom, budget under $50k"))
+    assert profile.budget_max == 50000.0
+
+
+def test_explicit_budget_max_beats_chat_text():
+    """A structured form value is authoritative over whatever the chat says."""
+    profile, _ = run_intake(
+        _brief(budget_max=75000.0, chat_text="maybe $30k? warm minimal bathroom")
+    )
+    assert profile.budget_max == 75000.0
+
+
+def test_ceiling_derived_from_client_budget():
+    """With a stated budget, the ceiling is its materials share, not the band table."""
+    _, _, deliverable = run_pipeline(
+        _brief(budget_max=50000.0, budget_band="low")  # band would say $2,200
+    )
+    b = deliverable.budget
+    assert b.ceiling_source == "client_budget"
+    assert b.client_budget_max == 50000.0
+    assert b.band_ceiling == 50000.0 * MATERIALS_SHARE
+    assert b.band_ceiling != BUDGET_CEILINGS["low"]
+    # The deliverable must speak in the client's own number, not the band's.
+    assert "$50,000" in deliverable.markdown
+
+
+def test_ceiling_falls_back_to_band_without_budget():
+    """No figure anywhere -> the old band behaviour, explicitly labelled."""
+    _, _, deliverable = run_pipeline(_brief(chat_text="calm spa-like bathroom"))
+    b = deliverable.budget
+    assert b.ceiling_source == "band_default"
+    assert b.client_budget_max is None
+    assert b.band_ceiling == BUDGET_CEILINGS["medium"]
+
+
+def test_money_parser_ignores_unit_prices_and_small_numbers():
+    from pipeline.agents.intent import parse_budget_max
+    assert parse_budget_max("tile at $40 per sqft, 3 sinks") is None
+    assert parse_budget_max("between $30k and $50k") == 50000.0
+    assert parse_budget_max("around 120 grand") == 120000.0

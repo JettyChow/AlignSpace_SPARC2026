@@ -138,7 +138,14 @@ CATALOG = {
 # Ranges, not quotes — the designer sets the real number (per team discussion).
 # Tuned so the bands are meaningful: a roomy bath or off-tier picks can exceed
 # the ceiling and trip the budget agent's swap suggestions.
+# Fallback ceilings used only when the client gave no usable budget figure
+# (see budget.materials_ceiling). Placeholder-scale, like CATALOG prices.
 BUDGET_CEILINGS = {"low": 2200.0, "medium": 4500.0, "high": 8500.0}
+
+# The catalog prices *materials only* — no labor, demo, plumbing or permits.
+# A client's stated budget is for the whole project, so only a share of it is
+# available for materials. Rough industry rule of thumb; tune per firm later.
+MATERIALS_SHARE = 0.30
 
 # Which tier each band prefers by default.
 BAND_TIER = {"low": "budget", "medium": "standard", "high": "premium"}
