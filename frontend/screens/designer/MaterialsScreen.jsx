@@ -3,27 +3,10 @@
 import { useState } from 'react';
 import LightScene from '@/components/frame/LightScene';
 import AppBar from '@/components/frame/AppBar';
-import { PrimaryButton, GlassButton } from '@/components/Buttons';
+import { PrimaryButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 import { fullName } from '@/lib/schema';
-
-const MAT_CATS = ['All', 'Furniture', 'Lighting', 'Fixtures', 'Finishes'];
-
-// Placeholder PROJECT_ITEMS (joined with ITEMS) — field names mirror the
-// DBML schema so a real fetch is a drop-in swap. `tone` is decorative only
-// (there's no image column on ITEMS yet); `projItem_status` drives the
-// stock/confirmation display below instead of a separate ad hoc flag.
-const MATERIALS = [
-  { item_id: 1, tone: 'linen', item_name: 'Linen Sectional', item_category: 'Furniture', projItem_quantity: 1, projItem_unitCost: 4200, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 4200, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 2, tone: 'oak', item_name: 'White Oak Coffee Table', item_category: 'Furniture', projItem_quantity: 1, projItem_unitCost: 1100, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 1100, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 3, tone: 'charcoal', item_name: 'Brass Pendant Light', item_category: 'Lighting', projItem_quantity: 2, projItem_unitCost: 620, projItem_status: 'pending', item_brand: '', item_model: '', item_cost: 620, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 4, tone: 'travertine', item_name: 'Travertine Side Table', item_category: 'Furniture', projItem_quantity: 2, projItem_unitCost: 460, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 460, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 5, tone: 'sand', item_name: 'Jute Area Rug', item_category: 'Finishes', projItem_quantity: 1, projItem_unitCost: 680, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 680, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 6, tone: 'stone', item_name: 'Matte Black Faucet', item_category: 'Fixtures', projItem_quantity: 1, projItem_unitCost: 340, projItem_status: 'pending', item_brand: '', item_model: '', item_cost: 340, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 7, tone: 'warmwhite', item_name: 'Warm White Paint', item_category: 'Finishes', projItem_quantity: 4, projItem_unitCost: 35, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 35, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-  { item_id: 8, tone: 'clay', item_name: 'Terracotta Vase Set', item_category: 'Furniture', projItem_quantity: 3, projItem_unitCost: 120, projItem_status: 'approved', item_brand: '', item_model: '', item_cost: 120, proj_id: null, room_id: null, presetItem_id: null, projItem_notes: '', projItem_source: '', projItem_confidenceScore: null, projItem_createdAt: null, projItem_updatedAt: null },
-];
 
 function MaterialCard({ item }) {
   const total = item.projItem_quantity * item.projItem_unitCost;
@@ -48,19 +31,23 @@ function MaterialCard({ item }) {
   );
 }
 
-export default function MaterialsScreen({ project, onBack, onProfile }) {
+export default function MaterialsScreen({ project, materials = [], deliverable, loading, error, onDownloadBrief, onBack, onProfile }) {
   const [activeCat, setActiveCat] = useState('All');
   const [search, setSearch] = useState('');
 
-  const filtered = MATERIALS.filter(m => {
+  // Category chips derive from the actual list (pipeline categories like
+  // "Floor tile"/"Vanity"), so they track whatever the backend returns.
+  const categories = ['All', ...new Set(materials.map(m => m.item_category))];
+
+  const filtered = materials.filter(m => {
     const catMatch = activeCat === 'All' || m.item_category === activeCat;
     const searchMatch = !search || m.item_name.toLowerCase().includes(search.toLowerCase());
     return catMatch && searchMatch;
   });
 
-  const totalFFE = MATERIALS.reduce((s, m) => s + m.projItem_quantity * m.projItem_unitCost, 0);
-  const confirmedCount = MATERIALS.filter(m => m.projItem_status === 'approved').length;
-  const pendingCount = MATERIALS.length - confirmedCount;
+  const totalFFE = materials.reduce((s, m) => s + m.projItem_quantity * m.projItem_unitCost, 0);
+  const confirmedCount = materials.filter(m => m.projItem_status === 'approved').length;
+  const pendingCount = materials.length - confirmedCount;
   const budgetUsedPct = project?.proj_budgetMaxOverride
     ? Math.round((totalFFE / project.proj_budgetMaxOverride) * 100)
     : null;
@@ -68,7 +55,7 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
   // Computed from MATERIALS/project above rather than a separate hardcoded
   // array, so these stay in sync with whatever the real fetch returns.
   const statCells = [
-    { label: 'Total items', value: MATERIALS.length },
+    { label: 'Total items', value: materials.length },
     { label: 'Confirmed', value: confirmedCount },
     { label: 'Pending', value: pendingCount },
     { label: 'Budget used', value: budgetUsedPct != null ? `${budgetUsedPct}%` : '—' },
@@ -88,10 +75,21 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
             <PhotoTile tone="linen" style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0 }} />
             <div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 600, color: 'rgba(247,242,234,0.95)' }}>{project?.proj_title || 'Living Room Refresh'}</div>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 600, color: 'rgba(247,242,234,0.95)' }}>{project?.proj_title || project?.title || 'Project'}</div>
               <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.45)' }}>{clientName}</div>
             </div>
           </div>
+
+          {deliverable?.scope_summary && (
+            <div style={{ padding: '12px 14px', borderRadius: 16, background: 'rgba(198,163,107,0.08)', border: '1px solid rgba(198,163,107,0.25)', marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--champagne)', marginBottom: 6 }}>Client brief</div>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'rgba(247,242,234,0.75)', lineHeight: 1.55, margin: '0 0 10px' }}>{deliverable.scope_summary}</p>
+              <button onClick={onDownloadBrief} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999, cursor: 'pointer', background: 'rgba(198,163,107,0.14)', border: '1px solid rgba(198,163,107,0.45)', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: 'var(--champagne)' }}>
+                <Icon name="download" size={15} stroke={1.8} color="var(--champagne)" />
+                Download brief (PDF)
+              </button>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 0, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 14 }}>
             {statCells.map((s, i) => (
@@ -114,7 +112,7 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
           </div>
 
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 14, paddingBottom: 2 }}>
-            {MAT_CATS.map(cat => (
+            {categories.map(cat => (
               <button key={cat} onClick={() => setActiveCat(cat)} style={{
                 flexShrink: 0, padding: '6px 14px', borderRadius: 999, cursor: 'pointer',
                 border: activeCat === cat ? '1px solid rgba(198,163,107,0.6)' : '1px solid rgba(255,255,255,0.10)',
@@ -127,7 +125,18 @@ export default function MaterialsScreen({ project, onBack, onProfile }) {
         </div>
 
         <div style={{ padding: '0 18px 100px' }}>
-          {filtered.map(m => <MaterialCard key={m.item_id} item={m} />)}
+          {loading && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'rgba(247,242,234,0.5)', textAlign: 'center', marginTop: 40 }}>Loading materials…</div>
+          )}
+          {!loading && error && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'rgba(247,242,234,0.55)', textAlign: 'center', marginTop: 40, lineHeight: 1.6 }}>{error}</div>
+          )}
+          {!loading && !error && filtered.length === 0 && (
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'rgba(247,242,234,0.5)', textAlign: 'center', marginTop: 40, lineHeight: 1.6 }}>
+              No materials yet — they appear once the client picks a direction.
+            </div>
+          )}
+          {!loading && !error && filtered.map(m => <MaterialCard key={m.item_id} item={m} />)}
         </div>
       </div>
 

@@ -13,7 +13,7 @@
 // rejects with an ApiError. Callers must show a real loading/empty/error
 // state, never fall back to invented project data.
 
-import { backendRequest, jsonBody } from './backendClient';
+import { BACKEND_BASE_URL, backendRequest, jsonBody } from './backendClient';
 
 export async function getProjects(getToken) {
   return backendRequest('/projects', {}, getToken);
@@ -36,6 +36,26 @@ export async function updateProjectPreferences(projectId, preferences, getToken)
     method: 'POST',
     body: jsonBody(preferences),
   }, getToken);
+}
+
+// Client -> designer handoff: marks the project sent_to_designer so it
+// appears on the designer dashboard (see design_service.handoff_to_designer).
+export async function handoffProject(projectId, data, getToken) {
+  return backendRequest(`/projects/${projectId}/handoff`, {
+    method: 'POST',
+    body: jsonBody(data),
+  }, getToken);
+}
+
+// The full packet for one handed-off project — includes ai_deliverable
+// (scope, selection sheet, budget, markdown) and materials.
+export async function getDesignerProject(projectId, getToken) {
+  return backendRequest(`/designer/projects/${projectId}`, {}, getToken);
+}
+
+// Direct URL for the generated brief PDF (GET /projects/{id}/brief.pdf).
+export function projectBriefPdfUrl(projectId) {
+  return `${BACKEND_BASE_URL}/projects/${projectId}/brief.pdf`;
 }
 
 // Designer dashboard: projects whose clients completed handoff

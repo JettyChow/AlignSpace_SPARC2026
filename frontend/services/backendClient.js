@@ -8,6 +8,10 @@ import { ApiError, parseResponse } from './apiClient';
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
 
+// For plain links/window.open (e.g. the brief PDF) where a fetch wrapper
+// can't be used. Empty string when the backend isn't configured.
+export const BACKEND_BASE_URL = BACKEND_URL;
+
 async function getAuthHeaders(getToken) {
   if (!getToken) return {};
 
