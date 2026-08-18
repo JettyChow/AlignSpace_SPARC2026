@@ -9,6 +9,10 @@ class ProjectCreate(BaseModel):
     room_sqft: Optional[float] = Field(default=None, gt=0)
     budget: Optional[str] = None
     budget_band: Optional[str] = None
+    # Client's stated whole-project budget in USD (e.g. 50000). Forwarded to
+    # the AI pipeline via _build_brief so the budget agent can derive its
+    # materials ceiling from the real figure instead of the band default.
+    budget_max: Optional[float] = Field(default=None, gt=0)
     timeline: Optional[str] = None
     timeline_weeks: Optional[int] = None
     priorities: Optional[List[str]] = []
@@ -33,6 +37,7 @@ class PreferenceUpdate(BaseModel):
     mood: Optional[str] = None
     room_sqft: Optional[float] = Field(default=None, gt=0)
     budget_band: Optional[str] = None
+    budget_max: Optional[float] = Field(default=None, gt=0)
     priorities: Optional[List[str]] = []
     style_chips: Optional[List[str]] = []
     direction_key: Optional[str] = None

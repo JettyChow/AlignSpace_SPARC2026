@@ -333,3 +333,32 @@ def test_catalog_service_maps_preset_items_from_database_rows():
     assert item["price"] == 149.99
     assert item["image_url"] == "https://example.com/faucet.jpg"
     assert item["item_cost"] == 169.0
+
+
+def test_budget_max_flows_from_create_through_build_brief(client):
+    """The client's stated budget must survive create -> preferences -> the
+    brief sent to the AI pipeline (it was silently dropped before)."""
+    response = client.post(
+        "/projects",
+        json={
+            "title": "Bathroom",
+            "room_type": "bathroom",
+            "budget_band": "low",
+            "budget_max": 50000,
+            "room_sqft": 60,
+            "style_chips": ["Warm minimal"],
+            "chat_text": "warm minimal bathroom",
+        },
+    )
+    assert response.status_code == 200
+    project = response.json()
+    assert project["preferences"]["budget_max"] == 50000
+
+    brief = pipeline_service._build_brief(project)
+    assert brief["budget_max"] == 50000
+    assert brief["room_sqft"] == 60
+
+    # Preference updates can set/correct it later too.
+    update = client.post("/projects/1/preferences", json={"budget_max": 75000})
+    assert update.status_code == 200
+    assert update.json()["preferences"]["budget_max"] == 75000

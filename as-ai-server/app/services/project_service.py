@@ -236,6 +236,7 @@ def create_project(project, request=None):
             "mood": style_tags[0] if style_tags else None,
             "room_sqft": project_data.get("room_sqft"),
             "budget_band": project_data.get("budget_band"),
+            "budget_max": project_data.get("budget_max"),
             "direction_key": None,
         },
         "images": [],

@@ -84,6 +84,7 @@ def _build_brief(project: dict[str, Any]) -> dict[str, Any]:
         "room_type": preferences.get("room_type") or project.get("room_type") or "bathroom",
         "room_sqft": preferences.get("room_sqft") or 40,
         "budget_band": _budget_band(preferences.get("budget_band") or preferences.get("budget")),
+        "budget_max": preferences.get("budget_max"),
         "timeline_weeks": None,
         "priorities": [value for value in (preferences.get("scope"), preferences.get("goal")) if value],
         "style_chips": preferences.get("style_tags") or [],
