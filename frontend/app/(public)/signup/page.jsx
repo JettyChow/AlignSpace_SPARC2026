@@ -89,8 +89,6 @@ export default function SignupPage() {
       onBack={back}
       onLogin={() => go('/login')}
       onSignup={handleSignup}
-      onGoogle={() => {}}
-      onApple={() => {}}
       loading={loading}
       error={error}
       pendingVerification={pendingVerification}

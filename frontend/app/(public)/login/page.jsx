@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSignIn, useUser } from '@clerk/nextjs';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
@@ -14,12 +14,17 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Only route automatically once *this* screen just completed a login —
+  // an already-active Clerk session from a previous visit should not skip
+  // the login page when the user lands here intentionally (e.g. via the
+  // role-select screen).
+  const justLoggedIn = useRef(false);
 
   // Route once the session is actually active and the user record is
   // available — role comes from the account (unsafeMetadata), falling back
   // to the locally-chosen role for accounts created before that was tracked.
   useEffect(() => {
-    if (!isSignedIn || !user) return;
+    if (!justLoggedIn.current || !isSignedIn || !user) return;
     const accountRole = user.unsafeMetadata?.role || role;
     go(accountRole === 'designer' ? '/projects' : '/entry');
   }, [isSignedIn, user, role, go]);
@@ -37,6 +42,7 @@ export default function LoginPage() {
     try {
       const result = await signIn.create({ identifier: email, password: pw });
       if (result.status === 'complete') {
+        justLoggedIn.current = true;
         await setActive({ session: result.createdSessionId });
         // Navigation happens in the effect above once `user` reflects the
         // newly active session.

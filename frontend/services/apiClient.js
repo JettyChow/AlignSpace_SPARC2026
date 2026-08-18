@@ -26,15 +26,18 @@ export async function parseResponse(response) {
   }
 
   if (!response.ok) {
-    const detail = data?.detail ?? data ?? text;
-    const message =
-      typeof detail === 'string'
-        ? detail
-        : data?.message || `Request failed with status ${response.status}`;
+    // Only a parsed JSON `detail`/`message` is trusted as user-facing text.
+    // An upstream failure (e.g. nginx returning 502 while a backend service
+    // is down/restarting) returns an HTML error page as `text` — that must
+    // never be rendered verbatim in the UI. The raw body is still kept on
+    // `.detail` for debugging/logging.
+    const parsedDetail = typeof data?.detail === 'string' ? data.detail : null;
+    const parsedMessage = typeof data?.message === 'string' ? data.message : null;
+    const message = parsedDetail || parsedMessage || `Request failed with status ${response.status}`;
 
     throw new ApiError(message, {
       status: response.status,
-      detail,
+      detail: data ?? text,
     });
   }
 
