@@ -335,30 +335,106 @@ def test_catalog_service_maps_preset_items_from_database_rows():
     assert item["item_cost"] == 169.0
 
 
-def test_budget_max_flows_from_create_through_build_brief(client):
-    """The client's stated budget must survive create -> preferences -> the
-    brief sent to the AI pipeline (it was silently dropped before)."""
-    response = client.post(
+def test_budget_max_reaches_pipeline_through_generate_route(client, monkeypatch):
+    """The stated budget must reach the actual /intake payload, via the real
+    route (it was silently dropped by _build_brief before)."""
+    calls = []
+
+    def fake_pipeline(path, payload):
+        calls.append((path, payload))
+        return _intake_response() if path == "/intake" else _assembly_response()
+
+    monkeypatch.setattr(pipeline_service, "_pipeline_request", fake_pipeline)
+    project = client.post(
         "/projects",
         json={
             "title": "Bathroom",
             "room_type": "bathroom",
-            "budget_band": "low",
             "budget_max": 50000,
             "room_sqft": 60,
             "style_chips": ["Warm minimal"],
             "chat_text": "warm minimal bathroom",
         },
-    )
-    assert response.status_code == 200
-    project = response.json()
+    ).json()
     assert project["preferences"]["budget_max"] == 50000
 
-    brief = pipeline_service._build_brief(project)
-    assert brief["budget_max"] == 50000
-    assert brief["room_sqft"] == 60
+    client.post(f"/projects/{project['project_id']}/generate")
+    assert calls[0][0] == "/intake"
+    assert calls[0][1]["budget_max"] == 50000
+    assert calls[0][1]["room_sqft"] == 60
+    # Band is derived from the figure server-side ($50k -> low), so the two
+    # signals can't disagree even if the stored band is stale or absent.
+    assert calls[0][1]["budget_band"] == "low"
 
-    # Preference updates can set/correct it later too.
-    update = client.post("/projects/1/preferences", json={"budget_max": 75000})
-    assert update.status_code == 200
-    assert update.json()["preferences"]["budget_max"] == 75000
+
+def test_budget_correction_after_generate_reaches_assemble(client, monkeypatch):
+    """/assemble must use current preferences, not the brief frozen at
+    /generate time — a corrected budget has to reach the budget agent."""
+    calls = []
+
+    def fake_pipeline(path, payload):
+        calls.append((path, payload))
+        return _intake_response() if path == "/intake" else _assembly_response()
+
+    monkeypatch.setattr(pipeline_service, "_pipeline_request", fake_pipeline)
+    project = client.post("/projects", json={"budget_max": 50000}).json()
+    pid = project["project_id"]
+    client.post(f"/projects/{pid}/generate")
+
+    client.post(f"/projects/{pid}/preferences", json={"budget_max": 200000})
+    client.post(f"/projects/{pid}/directions/select", json={"direction_id": 1})
+
+    assert calls[1][0] == "/assemble"
+    assert calls[1][1]["brief"]["budget_max"] == 200000
+    assert calls[1][1]["brief"]["budget_band"] == "high"
+
+
+def test_partial_preferences_update_preserves_lists_and_null_clears(client):
+    """A budget-only update must not wipe style/priority lists (exclude_unset),
+    and an explicit null must clear a mistyped budget_max."""
+    project = client.post(
+        "/projects",
+        json={
+            "budget_max": 500000,
+            "style_chips": ["Warm minimal"],
+            "priorities": ["more storage"],
+        },
+    ).json()
+    pid = project["project_id"]
+
+    update = client.post(f"/projects/{pid}/preferences", json={"budget_max": 75000})
+    prefs = update.json()["preferences"]
+    assert prefs["budget_max"] == 75000
+    assert prefs["style_tags"] == ["Warm minimal"]
+    assert prefs["style_chips"] == ["Warm minimal"]
+    assert prefs["priorities"] == ["more storage"]
+
+    cleared = client.post(f"/projects/{pid}/preferences", json={"budget_max": None})
+    assert cleared.status_code == 200
+    assert cleared.json()["preferences"]["budget_max"] is None
+
+
+def test_put_project_updates_preferences(client):
+    """PUT /projects/{id} used to accept budget_max with 200 and drop it."""
+    project = client.post("/projects", json={"title": "Bath"}).json()
+    pid = project["project_id"]
+
+    client.put(f"/projects/{pid}", json={"title": "Master bath", "budget_max": 90000})
+    brief = pipeline_service._build_brief(project_service.get_project(pid))
+    assert brief["budget_max"] == 90000
+
+
+def test_build_brief_forwards_all_priorities_and_timeline(client):
+    """priorities came through as [first, first] (rest dropped) and
+    timeline_weeks was hardcoded to None."""
+    project = client.post(
+        "/projects",
+        json={
+            "priorities": ["storage", "lighting", "accessibility"],
+            "timeline_weeks": 6,
+        },
+    ).json()
+
+    brief = pipeline_service._build_brief(project_service.get_project(project["project_id"]))
+    assert brief["priorities"] == ["storage", "lighting", "accessibility"]
+    assert brief["timeline_weeks"] == 6

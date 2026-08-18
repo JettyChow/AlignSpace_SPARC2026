@@ -79,11 +79,17 @@ def _project_title(project):
 
 
 def _budget_display(project):
+    # The client's stated budget (budget_max) is the honest value for a field
+    # named budgetMaxOverride; the AI's estimated_total is a materials output,
+    # kept only as a fallback for projects that never stated a figure.
+    preferences = project.get("preferences", {})
+    if preferences.get("budget_max"):
+        return _money(preferences["budget_max"])
+
     ai_budget = project.get("ai_budget") or {}
     if ai_budget.get("estimated_total") is not None:
         return _money(ai_budget["estimated_total"])
 
-    preferences = project.get("preferences", {})
     return _money(preferences.get("budget"))
 
 
@@ -274,7 +280,7 @@ def get_project(project_id: int, request=None):
 
 def update_project(project_id: int, project, request=None):
     existing_project = get_project(project_id, request)
-    project_data = project.model_dump(exclude_none=True)
+    project_data = project.model_dump(exclude_unset=True)
 
     existing_project["project"] = project
     if project_data.get("title"):
@@ -282,6 +288,15 @@ def update_project(project_id: int, project, request=None):
 
     if project_data.get("room_type"):
         existing_project["room_type"] = project_data["room_type"]
+
+    # PUT binds the full ProjectCreate schema; previously everything except
+    # title/room_type was validated, 200'd, and dropped. Merge the intake
+    # fields into preferences (the only place _build_brief reads).
+    for key in ("budget", "budget_band", "budget_max", "room_sqft",
+                "timeline", "timeline_weeks", "priorities",
+                "style_chips", "style_tags"):
+        if key in project_data:
+            existing_project["preferences"][key] = project_data[key]
 
     existing_project["status"] = "updated"
     existing_project["updated_at"] = get_timestamp()
@@ -343,16 +358,21 @@ def get_conversation(project_id: int, request=None):
 def update_preferences(project_id: int, preferences, request=None):
     project = get_project(project_id, request)
 
-    update_data = preferences.model_dump(exclude_none=True)
+    # exclude_unset (not exclude_none): fields the caller didn't send must not
+    # appear at all — with exclude_none the list fields' [] defaults survived
+    # and wiped stored style_tags/style_chips/priorities on every partial
+    # update. An explicitly sent null now comes through as None and clears the
+    # field (the only way to reset a mistyped budget_max, since gt=0 rejects 0).
+    update_data = preferences.model_dump(exclude_unset=True)
     if update_data.get("style_chips") and not update_data.get("style_tags"):
         update_data["style_tags"] = update_data["style_chips"]
 
     for key, value in update_data.items():
         project["preferences"][key] = value
 
-        if key == "room_type":
+        if key == "room_type" and value:
             project["room_type"] = value
-        elif key == "direction_key":
+        elif key == "direction_key" and value:
             project["selected_direction"] = {
                 "pipeline_direction_key": value,
                 "title": value.replace("_", " ").replace("-", " ").title(),

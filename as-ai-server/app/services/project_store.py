@@ -48,7 +48,14 @@ def _project_params(project: dict[str, Any]) -> dict[str, Any]:
     preferences = project.get("preferences") or {}
     budget = project.get("ai_budget") or project.get("budget") or {}
     budget_total = budget.get("estimated_total") if isinstance(budget, dict) else None
-    budget_override = budget_total if budget_total is not None else _money_number(preferences.get("budget"))
+    # Client's stated budget first — the column is named budgetMaxOverride,
+    # so the AI's materials estimate is only a fallback, never an override
+    # of a figure the client actually gave.
+    budget_override = (
+        preferences.get("budget_max")
+        or (budget_total if budget_total is not None else None)
+        or _money_number(preferences.get("budget"))
+    )
 
     selected_direction = project.get("selected_direction") or {}
     return {
@@ -160,8 +167,8 @@ def _user_id(session, current_user: dict[str, Any] | None) -> int:
 
 def is_available() -> bool:
     global _db_available
-    if _db_available is False:
-        return False
+    if _db_available is not None:
+        return _db_available
 
     try:
         with SessionLocal() as session:
@@ -207,7 +214,8 @@ def create_project_id(project_data: dict[str, Any] | None = None, current_user: 
                     "firm_id": firm_id,
                     "user_id_client": user_id,
                     "proj_title": project_data.get("title") or "Untitled Project",
-                    "proj_budgetMaxOverride": _money_number(project_data.get("budget")),
+                    "proj_budgetMaxOverride": project_data.get("budget_max")
+                    or _money_number(project_data.get("budget")),
                     "proj_budgetNotes": project_data.get("budget"),
                     "proj_timeline": project_data.get("timeline"),
                     "proj_scope": (project_data.get("priorities") or [None])[0],

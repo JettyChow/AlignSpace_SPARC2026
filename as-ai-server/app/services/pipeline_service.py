@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 
 from app.services import project_service
+from app.services.project_store import _money_number
 
 
 load_dotenv()
@@ -37,8 +38,18 @@ def _pipeline_request(path: str, payload: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=504, detail="AI pipeline request timed out.") from exc
     except httpx.RequestError as exc:
         raise HTTPException(status_code=503, detail="AI pipeline request failed.") from exc
-    except (httpx.HTTPStatusError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="AI pipeline returned an invalid response.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI pipeline returned {exc.response.status_code} for {path}: "
+                   f"{exc.response.text[:300]}",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI pipeline returned a non-JSON {response.status_code} response "
+                   f"for {path} — check AI_PIPELINE_URL points at the pipeline service.",
+        ) from exc
 
 
 def _pipeline_get(path: str) -> dict[str, Any]:
@@ -58,8 +69,18 @@ def _pipeline_get(path: str) -> dict[str, Any]:
         raise HTTPException(status_code=504, detail="AI pipeline request timed out.") from exc
     except httpx.RequestError as exc:
         raise HTTPException(status_code=503, detail="AI pipeline request failed.") from exc
-    except (httpx.HTTPStatusError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="AI pipeline returned an invalid response.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI pipeline returned {exc.response.status_code} for {path}: "
+                   f"{exc.response.text[:300]}",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"AI pipeline returned a non-JSON {response.status_code} response "
+                   f"for {path} — check AI_PIPELINE_URL points at the pipeline service.",
+        ) from exc
 
 
 def proxy_pipeline_get(path: str) -> dict[str, Any]:
@@ -75,18 +96,49 @@ def _budget_band(value: Any) -> str:
     return value if value in {"low", "medium", "high"} else "medium"
 
 
+def _band_from_budget_max(budget_max: float) -> str:
+    """Same buckets as the frontend's bandFromBudget (IntakeScreen.jsx)."""
+    if budget_max <= 50_000:
+        return "low"
+    if budget_max <= 100_000:
+        return "medium"
+    return "high"
+
+
 def _build_brief(project: dict[str, Any]) -> dict[str, Any]:
     preferences = project["preferences"]
     messages = project.get("chat_messages", [])
+
+    # Prefer the numeric field; fall back to parsing the legacy free-text
+    # `budget` string ("$50,000") so older payloads still carry a figure.
+    budget_max = preferences.get("budget_max") or _money_number(preferences.get("budget"))
+
+    # When a real figure exists, derive the band from it (same buckets the
+    # frontend uses) instead of trusting a stored band that may predate a
+    # budget correction — the band drives product-tier selection while the
+    # figure drives the ceiling, so they must not disagree.
+    if budget_max:
+        budget_band = _band_from_budget_max(budget_max)
+    else:
+        budget_band = _budget_band(preferences.get("budget_band") or preferences.get("budget"))
+
+    # The stored priorities list, not the scope/goal aliases — create_project
+    # sets both aliases to priorities[0], which duplicated the first priority
+    # and dropped the rest.
+    priorities = list(preferences.get("priorities") or [])
+    if not priorities:
+        priorities = [v for v in dict.fromkeys(
+            (preferences.get("scope"), preferences.get("goal"))) if v]
+
     return {
         "firm_id": project.get("firm_id", "firm_default"),
         "project_id": str(project["project_id"]),
         "room_type": preferences.get("room_type") or project.get("room_type") or "bathroom",
         "room_sqft": preferences.get("room_sqft") or 40,
-        "budget_band": _budget_band(preferences.get("budget_band") or preferences.get("budget")),
-        "budget_max": preferences.get("budget_max"),
-        "timeline_weeks": None,
-        "priorities": [value for value in (preferences.get("scope"), preferences.get("goal")) if value],
+        "budget_band": budget_band,
+        "budget_max": budget_max,
+        "timeline_weeks": preferences.get("timeline_weeks"),
+        "priorities": priorities,
         "style_chips": preferences.get("style_tags") or [],
         "chat_text": "\n".join(
             message.get("message") if isinstance(message, dict) else message.message
@@ -193,9 +245,14 @@ def generate_project(project_id: int):
 
 def assemble_project_direction(project_id: int, direction: dict[str, Any]) -> dict[str, Any]:
     project = project_service.get_project(project_id)
-    brief = project.get("ai_brief")
-    if not brief:
+    if not project.get("ai_brief"):
         raise HTTPException(status_code=400, detail="Generate directions before selecting one.")
+
+    # Rebuild from current preferences instead of replaying the snapshot
+    # frozen at /generate time — otherwise a budget (or any preference)
+    # corrected after generation never reaches the budget agent.
+    brief = _build_brief(project)
+    project["ai_brief"] = brief
 
     deliverable = _pipeline_request(
         "/assemble",

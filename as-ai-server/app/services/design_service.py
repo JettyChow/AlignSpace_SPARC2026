@@ -173,16 +173,17 @@ def get_budget(project_id: int):
     warnings = []
 
     preferences = project.get("preferences", {})
-    budget = preferences.get("budget")
-
-    if budget:
+    budget_number = preferences.get("budget_max")
+    if not budget_number and preferences.get("budget"):
         try:
-            budget_number = int(str(budget).replace("$", "").replace(",", ""))
-            if estimate > budget_number:
-                budget_fit = "over"
-                warnings.append("Estimated total exceeds stated budget.")
+            budget_number = int(str(preferences["budget"]).replace("$", "").replace(",", ""))
         except ValueError:
+            budget_number = None
             warnings.append("Budget could not be parsed as a number.")
+
+    if budget_number and estimate > budget_number:
+        budget_fit = "over"
+        warnings.append("Estimated total exceeds stated budget.")
 
     return {
         "project_id": project_id,
