@@ -14,7 +14,7 @@ from app.services import auth_service, catalog_service, pipeline_service, projec
 @pytest.fixture(autouse=True)
 def clear_projects(monkeypatch):
     project_service.projects.clear()
-    monkeypatch.setattr(project_store, "create_project_id", lambda: None)
+    monkeypatch.setattr(project_store, "create_project_id", lambda project_data=None, current_user=None: None)
     monkeypatch.setattr(project_store, "save_project", lambda project: False)
     monkeypatch.setattr(project_store, "get_project", lambda project_id: None)
     monkeypatch.setattr(project_store, "list_projects", lambda clerk_user_id=None, limit=None: None)
@@ -221,7 +221,7 @@ def test_project_apis_persist_through_project_store(client, monkeypatch):
         stored_projects[project["project_id"]] = project.copy()
         return True
 
-    monkeypatch.setattr(project_store, "create_project_id", lambda: 42)
+    monkeypatch.setattr(project_store, "create_project_id", lambda project_data=None, current_user=None: 42)
     monkeypatch.setattr(project_store, "save_project", save_project)
     monkeypatch.setattr(project_store, "get_project", lambda project_id: stored_projects.get(project_id))
     monkeypatch.setattr(project_store, "list_projects", lambda clerk_user_id=None, limit=None: list(stored_projects.values()))
