@@ -6,7 +6,19 @@ import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import ProjectsScreen from '@/screens/designer/ProjectsScreen';
 import { getDesignerProjects } from '@/services/project.service';
-import { ApiError } from '@/services/apiClient';
+import { DEMO_PROJECT_ID, buildDemoDesignerProject } from '@/data/demoDesignerProject';
+
+// DEMO MODE: the real Client -> DB -> Designer handoff isn't wired yet (see
+// services/project.service.js), so getDesignerProjects() below either fails
+// or resolves empty. Every Designer account is shown one deterministic demo
+// kitchen project regardless — see data/demoDesignerProject.js. Swap this
+// out once /designer/projects is backed by a real main backend.
+const DEMO_PROJECT = buildDemoDesignerProject();
+
+function withDemoProject(projects) {
+  if ((projects || []).some((p) => p.proj_id === DEMO_PROJECT_ID)) return projects;
+  return [DEMO_PROJECT, ...(projects || [])];
+}
 
 export default function ProjectsPage() {
   const setProject = useAppStore((s) => s.setProject);
@@ -14,30 +26,23 @@ export default function ProjectsPage() {
   const { getToken } = useAuth();
   const { user } = useUser();
 
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Start pre-populated with the demo project (not an empty array) so it
+  // renders immediately with no loading/error flash while the real
+  // (currently unreachable) backend request resolves in the background.
+  const [projects, setProjects] = useState([DEMO_PROJECT]);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     getDesignerProjects(getToken)
       .then((data) => {
         if (cancelled) return;
-        setProjects(data?.projects || []);
+        setProjects(withDemoProject(data?.projects));
       })
-      .catch((err) => {
-        if (cancelled) return;
-        const message =
-          err instanceof ApiError
-            ? 'Could not load projects right now.'
-            : 'The projects backend is not reachable yet.';
-        setError(message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+      .catch(() => {
+        // A real-backend failure never blocks the demo project — it just
+        // means no *additional* real projects show up alongside it. Once
+        // /designer/projects is real, surface this properly again.
       });
 
     return () => {
@@ -49,8 +54,8 @@ export default function ProjectsPage() {
     <ProjectsScreen
       designer={{ user_firstName: user?.firstName, user_lastName: user?.lastName }}
       projects={projects}
-      loading={loading}
-      error={error}
+      loading={false}
+      error={null}
       onOpenProject={(project) => {
         setProject(project);
         go(`/projects/${project.proj_id ?? project.project_id ?? 0}`);
