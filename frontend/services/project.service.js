@@ -38,6 +38,13 @@ export async function updateProjectPreferences(projectId, preferences, getToken)
   }, getToken);
 }
 
+// Designer dashboard: projects whose clients completed handoff
+// (backend filters on status == "sent_to_designer" — see
+// as-ai-server/app/services/designer_service.py).
+export async function getDesignerProjects(getToken) {
+  return backendRequest('/designer/projects', {}, getToken);
+}
+
 // Trigger the main backend to run the AI pipeline for an existing project
 // (preferences/chat_messages must already be populated via createProject /
 // updateProjectPreferences). Proxies as-ai-server's /intake server-side —

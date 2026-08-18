@@ -7,22 +7,13 @@ import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 import { fullName } from '@/lib/schema';
 
-const FILTER_CHIPS = [
-  { label: 'All', count: 12, dot: null },
-  { label: 'Active', count: 8, dot: '#7AB96B' },
-  { label: 'Review', count: 3, dot: '#D4A45A' },
-  { label: 'Pending', count: 1, dot: 'rgba(255,255,255,0.4)' },
-];
-
-// Placeholder PROJECTS rows — field names mirror the DBML schema. `client`
-// and `assignedDesigner` stand in for the USERS row a real join would
-// return (user_id_client / user_id_assignedDesigner are FKs, not names).
-// `tone` is decorative only — there's no image column on PROJECTS yet.
-const PROJECTS = [
-  { proj_id: 1, tone: 'linen', proj_title: 'Living Room Refresh', client: { user_id: 101, user_firstName: 'Maya', user_lastName: 'Chen' }, proj_completionPercent: 68, proj_status: 'Package Review', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 2, tone: 'oak', proj_title: 'Master Suite Reno', client: { user_id: 102, user_firstName: 'Jordan', user_lastName: 'Park' }, proj_completionPercent: 34, proj_status: 'FFE Selection', urgent: true, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 2, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 3, tone: 'travertine', proj_title: 'Open Kitchen', client: { user_id: 103, user_firstName: 'Sam', user_lastName: 'Rivera' }, proj_completionPercent: 92, proj_status: 'Handoff Ready', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 3, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
-  { proj_id: 4, tone: 'sand', proj_title: 'Home Office', client: { user_id: 104, user_firstName: 'Casey', user_lastName: 'Wu' }, proj_completionPercent: 12, proj_status: 'Discovery', urgent: false, firm_id: 1, assignedDesigner: { user_id: 1, user_firstName: 'Elena', user_lastName: 'Ross' }, bud_id: 1, proj_budgetMinOverride: null, proj_budgetMaxOverride: null, proj_budgetNotes: '', proj_timeline: '', proj_scope: '', proj_goal: '', proj_matchPercent: null, proj_createdAt: '2026-01-01T00:00:00Z', proj_updatedAt: '2026-01-01T00:00:00Z' },
+// Filters are computed from the real project list — a project is "Active"
+// while the flow is underway and surfaces under "Review" once it's ready
+// for the designer's eye (completion >= 90%).
+const FILTERS = [
+  { label: 'All', dot: null, match: () => true },
+  { label: 'Active', dot: '#7AB96B', match: (p) => (p.proj_completionPercent ?? 0) < 90 },
+  { label: 'Review', dot: '#D4A45A', match: (p) => (p.proj_completionPercent ?? 0) >= 90 },
 ];
 
 function StatTile({ value, label, accent }) {
@@ -74,16 +65,15 @@ function ProjectCard({ project, onClick }) {
   );
 }
 
-export default function ProjectsScreen({ designer, onOpenProject, onProfile }) {
+export default function ProjectsScreen({ designer, projects = [], loading, error, onOpenProject, onProfile }) {
   const [activeFilter, setActiveFilter] = useState('All');
 
-  const filtered = activeFilter === 'All' ? PROJECTS : PROJECTS.filter(p => {
-    if (activeFilter === 'Active') return p.proj_completionPercent < 90;
-    if (activeFilter === 'Review') return p.urgent;
-    return false;
-  });
+  const activeChip = FILTERS.find((f) => f.label === activeFilter) || FILTERS[0];
+  const filtered = projects.filter(activeChip.match);
+  const activeCount = projects.filter(FILTERS[1].match).length;
+  const reviewCount = projects.filter(FILTERS[2].match).length;
 
-  const designerName = fullName(designer) || fullName(PROJECTS[0]?.assignedDesigner) || 'Designer';
+  const designerName = fullName(designer) || 'Designer';
 
   return (
     <LightScene>
@@ -94,11 +84,11 @@ export default function ProjectsScreen({ designer, onOpenProject, onProfile }) {
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: 'rgba(247,242,234,0.48)', marginBottom: 2 }}>Good afternoon</div>
         <div style={{ fontFamily: 'var(--font-sans)', fontSize: 26, fontWeight: 600, color: 'rgba(247,242,234,0.97)', letterSpacing: '-0.015em', marginBottom: 18 }}>{designerName}</div>
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <StatTile value="12" label={"Active\nprojects"} />
-          <StatTile value="3" label={"Need\nattention"} accent />
+          <StatTile value={activeCount} label={"Active\nprojects"} />
+          <StatTile value={reviewCount} label={"Ready for\nreview"} accent />
         </div>
         <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 18, paddingBottom: 2 }}>
-          {FILTER_CHIPS.map(chip => (
+          {FILTERS.map(chip => (
             <button key={chip.label} onClick={() => setActiveFilter(chip.label)} style={{
               flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 999, cursor: 'pointer',
               border: activeFilter === chip.label ? '1px solid rgba(198,163,107,0.6)' : '1px solid rgba(255,255,255,0.12)',
@@ -108,11 +98,22 @@ export default function ProjectsScreen({ designer, onOpenProject, onProfile }) {
             }}>
               {chip.dot && <div style={{ width: 6, height: 6, borderRadius: '50%', background: chip.dot, flexShrink: 0 }} />}
               {chip.label}
-              <span style={{ fontSize: 11, opacity: 0.65 }}>{chip.count}</span>
+              <span style={{ fontSize: 11, opacity: 0.65 }}>{projects.filter(chip.match).length}</span>
             </button>
           ))}
         </div>
-        {filtered.map(p => <ProjectCard key={p.proj_id} project={p} onClick={() => onOpenProject?.(p)} />)}
+        {loading && (
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.5)', textAlign: 'center', marginTop: 48 }}>Loading projects…</div>
+        )}
+        {!loading && error && (
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.55)', textAlign: 'center', marginTop: 48, lineHeight: 1.6 }}>{error}</div>
+        )}
+        {!loading && !error && filtered.length === 0 && (
+          <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(247,242,234,0.5)', textAlign: 'center', marginTop: 48, lineHeight: 1.6 }}>
+            No client projects yet.{'\n'}Packages appear here when a client completes handoff.
+          </div>
+        )}
+        {!loading && !error && filtered.map(p => <ProjectCard key={p.proj_id} project={p} onClick={() => onOpenProject?.(p)} />)}
       </div>
     </LightScene>
   );
