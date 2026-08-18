@@ -93,7 +93,14 @@ jobs:
           script: |
             set -e
             cd /var/www/AlignSpace_SPARC2026
-            git pull origin main
+            # fetch+reset, not pull: the rsync step above writes build output
+            # (including public/ assets) into this checkout, so any commit that
+            # adds a tracked file colliding with those untracked copies makes
+            # `git pull` refuse to merge and kills the deploy. reset --hard
+            # takes origin/main unconditionally; untracked files that aren't
+            # part of the tree (venv, the rsynced bundle) are left alone.
+            git fetch origin main
+            git reset --hard origin/main
 
             cd as-ai-server
             source venv/bin/activate
