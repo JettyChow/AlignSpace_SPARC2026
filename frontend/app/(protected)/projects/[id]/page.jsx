@@ -6,8 +6,9 @@ import { useAuth } from '@clerk/nextjs';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import MaterialsScreen from '@/screens/designer/MaterialsScreen';
-import { getDesignerProject, projectBriefPdfUrl } from '@/services/project.service';
+import { getDesignerProject } from '@/services/project.service';
 import { ApiError } from '@/services/apiClient';
+import { DEMO_PROJECT_ID, buildDemoDesignerProject, buildDemoDesignerMaterials } from '@/data/demoDesignerProject';
 
 const TONES = ['linen', 'oak', 'charcoal', 'travertine', 'sand', 'stone', 'warmwhite', 'clay'];
 
@@ -40,11 +41,20 @@ export default function ProjectDetailPage() {
   const { getToken } = useAuth();
   const storeProject = useAppStore((s) => s.project);
 
+  // DEMO MODE: /projects/demo-kitchen is a fixed, non-numeric id that never
+  // corresponds to a real backend record — bypass getDesignerProject()
+  // entirely and load the shared kitchen demo dataset instead. This check
+  // must run before the numeric-id validation below, since "demo-kitchen"
+  // is intentionally non-numeric. See data/demoDesignerProject.js.
+  const isDemo = id === DEMO_PROJECT_ID;
+
   const [packet, setPacket] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isDemo);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (isDemo) return;
+
     if (!Number.isFinite(Number(id))) {
       setLoading(false);
       setError('This project only exists locally — no backend record to load.');
@@ -74,16 +84,28 @@ export default function ProjectDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, getToken]);
+  }, [id, getToken, isDemo]);
+
+  if (isDemo) {
+    return (
+      <MaterialsScreen
+        project={buildDemoDesignerProject()}
+        materials={buildDemoDesignerMaterials()}
+        loading={false}
+        error={null}
+        onBack={back}
+        onProfile={() => go('/profile')}
+        onTab={() => {}}
+      />
+    );
+  }
 
   return (
     <MaterialsScreen
       project={packet || storeProject}
       materials={toScreenMaterials(packet?.materials)}
-      deliverable={packet?.ai_deliverable}
       loading={loading}
       error={error}
-      onDownloadBrief={() => window.open(projectBriefPdfUrl(id), '_blank')}
       onBack={back}
       onProfile={() => go('/profile')}
       onTab={() => {}}

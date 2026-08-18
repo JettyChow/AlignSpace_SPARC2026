@@ -40,7 +40,7 @@ function AvatarStack({ count }) {
 function ProjectCard({ project, onClick }) {
   return (
     <button onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 0, borderRadius: 20, overflow: 'hidden', border: project.urgent ? '1px solid rgba(212,164,90,0.4)' : '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
-      <PhotoTile tone={project.tone} style={{ width: 80, height: 84, borderRadius: 0, flexShrink: 0 }} />
+      <PhotoTile tone={project.tone} imageUrl={project.imageUrl} style={{ width: 80, height: 84, borderRadius: 0, flexShrink: 0 }} />
       <div style={{ flex: 1, padding: '12px 14px' }}>
         {project.urgent && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, background: 'rgba(212,164,90,0.14)', border: '1px solid rgba(212,164,90,0.3)', marginBottom: 6 }}>
