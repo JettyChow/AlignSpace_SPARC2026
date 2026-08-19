@@ -21,6 +21,7 @@ export default function BudgetPage() {
       onBack={back}
       onContinue={() => go('/summary')}
       onMenu={() => go('/history')}
+      onAdjustPackage={() => go('/package')}
     />
   );
 }

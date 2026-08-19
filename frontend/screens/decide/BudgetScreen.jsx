@@ -13,7 +13,7 @@ import { groupLineItems } from '@/lib/materialCategories';
 // and FFEScreen use (see lib/materialCategories.js).
 const ALLOCATION_COLORS = { materials: '#C6A36B', fixtures: '#D8C5A9', lighting: '#A8854F' };
 
-export default function BudgetScreen({ deliverable, onBack, onContinue, onMenu }) {
+export default function BudgetScreen({ deliverable, onBack, onContinue, onMenu, onAdjustPackage }) {
   const pkg = deliverable?.package;
   const budget = deliverable?.budget;
 
@@ -111,7 +111,7 @@ export default function BudgetScreen({ deliverable, onBack, onContinue, onMenu }
         )}
 
         {/* adjust package button — white card */}
-        <button onClick={onBack} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: 16, borderRadius: 20, background: '#fff', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', cursor: 'pointer', textAlign: 'left' }}>
+        <button onClick={onAdjustPackage} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: 16, borderRadius: 20, background: '#fff', border: '1px solid var(--line)', boxShadow: 'var(--shadow-card)', cursor: 'pointer', textAlign: 'left' }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', flex: 'none', background: 'var(--champagne-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="sparkle" size={19} color="#fff" stroke={1.7} />
           </div>
