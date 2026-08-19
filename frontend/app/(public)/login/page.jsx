@@ -71,7 +71,16 @@ export default function LoginPage() {
         // Navigation happens in the effect above once `user` reflects the
         // newly active session.
       } else {
-        setError('Could not complete login. Please try again.');
+        // TEMPORARY DIAGNOSTIC — remove once the production non-complete
+        // status is identified. Logs only status enums, never credentials,
+        // tokens, or session identifiers.
+        console.error('[login] signIn.create() did not complete', {
+          status: result.status,
+          firstFactorVerificationStatus: result.firstFactorVerification?.status,
+          secondFactorVerificationStatus: result.secondFactorVerification?.status,
+          supportedFirstFactors: result.supportedFirstFactors?.map((f) => f.strategy),
+        });
+        setError(`Could not complete login (status: ${result.status}).`);
       }
     } catch (err) {
       setError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Incorrect email or password.');
