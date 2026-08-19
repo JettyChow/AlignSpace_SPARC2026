@@ -18,6 +18,7 @@ export default function HandoffPage() {
   const { go } = useNavigation();
   const { getToken } = useAuth();
   const projectId = useAppStore((s) => s.projectId);
+  const addToHistory = useAppStore((s) => s.addToHistory);
 
   const isRealProject = looksLikeRealProjectId(projectId);
   // 'offline' = no backend project exists (TEMP-ID demo flow) — nothing to
@@ -46,6 +47,14 @@ export default function HandoffPage() {
       cancelled = true;
     };
   }, [projectId, isRealProject, getToken, attempt]);
+
+  // Save a local "Project history" snapshot the moment the client reaches
+  // this screen — reaching handoff is the "project is done" signal in this
+  // demo, independent of whether a real backend is reachable. addToHistory()
+  // upserts by a stable id, so this is safe to fire on every mount/re-render.
+  useEffect(() => {
+    addToHistory();
+  }, [addToHistory]);
 
   return (
     <HandoffScreen

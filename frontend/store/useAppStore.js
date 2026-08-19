@@ -41,6 +41,29 @@ export const useAppStore = create(
       directions: [],
       deliverable: null,
 
+      // Stable id for the CURRENT in-progress project's deliverable, minted
+      // once (see setDeliverable below) and reused as the dedupe key when
+      // addToHistory() snapshots it — deliberately NOT the TEMP-ID projectId,
+      // since that placeholder is reused across every project in a browser
+      // session until a real backend project-creation call succeeds (see
+      // makeTempId note above). Cleared by resetFlow().
+      currentLocalProjectId: null,
+
+      // Local-only "Project history" list (no main backend yet — see
+      // services/project.service.js). Each entry is shaped to match the
+      // proj_* fields screens/support/HistoryScreen.jsx and
+      // screens/flow/EntryScreen.jsx already read from a real backend
+      // response, plus `_snapshot` (the full deliverable/brief/confirmed at
+      // handoff time) for read-only historical viewing. Populated by
+      // addToHistory() in app/(protected)/handoff/page.jsx.
+      projectHistory: [],
+
+      // Which history entry (if any) is currently being viewed read-only on
+      // /summary — set by history/page.jsx when a card is tapped, cleared
+      // when leaving that screen. Null = /summary shows the live in-progress
+      // deliverable/brief/confirmed as usual.
+      viewingHistoryEntry: null,
+
       // Actions
       setRole: (role) => set({ role }),
 
@@ -66,7 +89,52 @@ export const useAppStore = create(
       setBrief: (brief) => set({ brief }),
       setProfile: (profile) => set({ profile }),
       setDirections: (directions) => set({ directions }),
-      setDeliverable: (deliverable) => set({ deliverable }),
+
+      // Mints currentLocalProjectId the first time a deliverable lands for
+      // this flow (left as-is on later calls within the same flow, e.g. a
+      // re-assemble after tweaking selections) so addToHistory() has a
+      // stable id to dedupe on instead of relying on object identity.
+      setDeliverable: (deliverable) =>
+        set((s) => ({
+          deliverable,
+          currentLocalProjectId: deliverable
+            ? s.currentLocalProjectId || `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+            : null,
+        })),
+
+      setViewingHistoryEntry: (entry) => set({ viewingHistoryEntry: entry }),
+
+      // Snapshots the current deliverable/brief/confirmed into projectHistory.
+      // Called from app/(protected)/handoff/page.jsx once the client reaches
+      // the handoff screen. Upserts by currentLocalProjectId (not object
+      // reference) so the effect re-firing / a retry doesn't create
+      // duplicate entries, while a genuinely new project (new
+      // currentLocalProjectId after resetFlow + setDeliverable) gets its own.
+      addToHistory: () =>
+        set((s) => {
+          if (!s.deliverable) return {};
+          const id = s.currentLocalProjectId || `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          const direction = s.deliverable.chosen_direction;
+          const rawRoomType = s.deliverable.room_type || s.brief?.room_type;
+          const roomLabel = rawRoomType
+            ? rawRoomType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+            : 'Renovation';
+          const ceiling = s.deliverable.budget?.band_ceiling ?? s.deliverable.budget?.estimated_total;
+          const entry = {
+            proj_id: id,
+            proj_title: direction?.name ? `${roomLabel} · ${direction.name}` : `${roomLabel} Renovation`,
+            proj_status: 'Handed off',
+            proj_completionPercent: 100,
+            // HistoryScreen interpolates this raw (no $/toLocaleString of its
+            // own), so pre-format it here.
+            proj_budgetMaxOverride: ceiling != null ? `$${Math.round(ceiling).toLocaleString()}` : '—',
+            proj_updatedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            _local: true,
+            _snapshot: { deliverable: s.deliverable, brief: s.brief, confirmed: s.confirmed },
+          };
+          const rest = s.projectHistory.filter((p) => p.proj_id !== id);
+          return { projectHistory: [entry, ...rest], currentLocalProjectId: id };
+        }),
 
       resetFlow: () =>
         set({
@@ -78,6 +146,10 @@ export const useAppStore = create(
           directions: [],
           deliverable: null,
           project: null,
+          currentLocalProjectId: null,
+          viewingHistoryEntry: null,
+          // projectHistory intentionally NOT cleared — it's the saved record
+          // of past projects, unrelated to the in-progress flow being reset.
         }),
     }),
     {
@@ -94,6 +166,9 @@ export const useAppStore = create(
         profile: s.profile,
         directions: s.directions,
         deliverable: s.deliverable,
+        currentLocalProjectId: s.currentLocalProjectId,
+        projectHistory: s.projectHistory,
+        viewingHistoryEntry: s.viewingHistoryEntry,
       }),
     }
   )

@@ -7,7 +7,7 @@ import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
 import { GROUP_LABELS, groupLineItems } from '@/lib/materialCategories';
 
-export default function SummaryScreen({ deliverable, roomType, role, confirmed = [], onBack, onHandoff, onMenu }) {
+export default function SummaryScreen({ deliverable, roomType, role, confirmed = [], onBack, onHandoff, onMenu, readOnly = false }) {
   const direction = deliverable?.chosen_direction;
   const pkg = deliverable?.package;
   const budget = deliverable?.budget;
@@ -41,7 +41,7 @@ export default function SummaryScreen({ deliverable, roomType, role, confirmed =
 
   return (
     <LightScene>
-      <AppBar onBack={onBack} eyebrow="Before handoff" title="Project summary" onMenu={onMenu} />
+      <AppBar onBack={onBack} eyebrow={readOnly ? 'From history · Read-only' : 'Before handoff'} title="Project summary" onMenu={onMenu} />
       <div style={{ position: 'absolute', inset: 0, padding: '108px 20px 96px', overflowY: 'auto', boxSizing: 'border-box' }}>
 
         {/* project header card — white card with scene photo */}
@@ -84,28 +84,38 @@ export default function SummaryScreen({ deliverable, roomType, role, confirmed =
           </div>
         )}
 
-        {/* edit / save glass buttons */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
-          <GlassButton dark={false} full onClick={onBack}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Icon name="edit" size={17} stroke={1.8} /> Edit
-            </span>
-          </GlassButton>
-          <GlassButton dark={false} full>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-              <Icon name="bookmark" size={17} stroke={1.8} /> Save
-            </span>
-          </GlassButton>
-        </div>
+        {/* edit / save glass buttons — hidden for read-only historical viewing */}
+        {!readOnly && (
+          <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
+            <GlassButton dark={false} full onClick={onBack}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <Icon name="edit" size={17} stroke={1.8} /> Edit
+              </span>
+            </GlassButton>
+            <GlassButton dark={false} full>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                <Icon name="bookmark" size={17} stroke={1.8} /> Save
+              </span>
+            </GlassButton>
+          </div>
+        )}
       </div>
 
       {/* bottom CTA — light warm cream fade */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px 20px 28px', zIndex: 20, background: 'linear-gradient(180deg, rgba(247,243,236,0), rgba(247,243,236,0.96) 40%)' }}>
-        <PrimaryButton onClick={onHandoff}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-            <Icon name="users" size={19} stroke={1.7} /> Hand over to designer
-          </span>
-        </PrimaryButton>
+        {readOnly ? (
+          <GlassButton dark={false} full onClick={onBack} style={{ cursor: 'default' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+              <Icon name="check" size={19} stroke={1.7} /> Handed off · Viewing history
+            </span>
+          </GlassButton>
+        ) : (
+          <PrimaryButton onClick={onHandoff}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+              <Icon name="users" size={19} stroke={1.7} /> Hand over to designer
+            </span>
+          </PrimaryButton>
+        )}
       </div>
     </LightScene>
   );

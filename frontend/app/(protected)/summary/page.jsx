@@ -10,23 +10,45 @@ export default function SummaryPage() {
   const role = useAppStore((s) => s.role);
   const confirmed = useAppStore((s) => s.confirmed);
   const brief = useAppStore((s) => s.brief);
+  const viewingHistoryEntry = useAppStore((s) => s.viewingHistoryEntry);
+  const setViewingHistoryEntry = useAppStore((s) => s.setViewingHistoryEntry);
   const { go, back } = useNavigation();
 
-  useEffect(() => {
-    if (!deliverable) go('/discovery');
-  }, [deliverable, go]);
+  // Viewing a past project from History: render its saved snapshot instead
+  // of whatever's live in the store, so a different in-progress project
+  // (if any) can't bleed into this read-only view. See useAppStore's
+  // viewingHistoryEntry / addToHistory for how the snapshot is built.
+  const snapshot = viewingHistoryEntry?._snapshot;
+  const activeDeliverable = snapshot ? snapshot.deliverable : deliverable;
+  const activeBrief = snapshot ? snapshot.brief : brief;
+  const activeConfirmed = snapshot ? snapshot.confirmed : confirmed;
 
-  if (!deliverable) return null;
+  useEffect(() => {
+    if (!viewingHistoryEntry && !deliverable) go('/discovery');
+  }, [viewingHistoryEntry, deliverable, go]);
+
+  if (!activeDeliverable) return null;
+
+  const leaveHistoryView = () => {
+    if (viewingHistoryEntry) setViewingHistoryEntry(null);
+  };
 
   return (
     <SummaryScreen
-      deliverable={deliverable}
-      roomType={deliverable?.room_type || brief?.room_type}
+      deliverable={activeDeliverable}
+      roomType={activeDeliverable?.room_type || activeBrief?.room_type}
       role={role}
-      confirmed={confirmed}
-      onBack={back}
+      confirmed={activeConfirmed}
+      readOnly={!!viewingHistoryEntry}
+      onBack={() => {
+        leaveHistoryView();
+        back();
+      }}
       onHandoff={() => go('/handoff')}
-      onMenu={() => go('/history')}
+      onMenu={() => {
+        leaveHistoryView();
+        go('/history');
+      }}
     />
   );
 }
