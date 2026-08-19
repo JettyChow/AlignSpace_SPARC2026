@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSignIn, useUser } from '@clerk/nextjs';
+import { useSignIn, useUser, useClerk } from '@clerk/nextjs';
 import { useAppStore } from '@/store/useAppStore';
 import { useNavigation } from '@/hooks/useNavigation';
 import LoginScreen from '@/screens/auth/LoginScreen';
@@ -10,7 +10,8 @@ export default function LoginPage() {
   const role = useAppStore((s) => s.role);
   const { go, back } = useNavigation();
   const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn, user } = useUser();
+  const { isLoaded: userLoaded, isSignedIn, user } = useUser();
+  const { signOut } = useClerk();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -29,8 +30,31 @@ export default function LoginPage() {
     go(accountRole === 'designer' ? '/projects' : '/entry');
   }, [isSignedIn, user, role, go]);
 
+  // Reconcile a still-active Clerk session against the role just picked on
+  // /role. Clerk only allows one active session per browser, so a stale
+  // session left over from a previous login (e.g. Client) collides with a
+  // fresh signIn.create() call here and Clerk rejects it with "already
+  // signed in". Two cases:
+  //  - the active session already IS the selected role → skip the form,
+  //    route straight to that role's home.
+  //  - it's a different (or unrecorded) role → end it first via signOut(),
+  //    gating `loading` for the duration so a submit can't race it and hit
+  //    the same "already signed in" error again.
+  // Bails immediately once isSignedIn flips (after signOut resolves, or
+  // once the redirect above fires), so this can't loop.
+  useEffect(() => {
+    if (!userLoaded || !isSignedIn || !user) return;
+    const accountRole = user.unsafeMetadata?.role;
+    if (accountRole === role) {
+      go(role === 'designer' ? '/projects' : '/entry');
+      return;
+    }
+    setLoading(true);
+    signOut().finally(() => setLoading(false));
+  }, [userLoaded, isSignedIn, user, role, go, signOut]);
+
   async function handleLogin({ email, pw }) {
-    if (!isLoaded) return;
+    if (!isLoaded || loading) return;
     setError(null);
 
     if (!email.trim() || !pw) {

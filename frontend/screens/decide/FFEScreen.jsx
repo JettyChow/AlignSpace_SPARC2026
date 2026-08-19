@@ -8,7 +8,7 @@ import PhotoTile from '@/components/PhotoTile';
 import StatusPill from '@/components/StatusPill';
 import GlassPanel from '@/components/GlassPanel';
 import Icon from '@/components/Icon';
-import { groupLineItems, categoryMeta } from '@/lib/materialCategories';
+import { groupLineItems, categoryMeta, isGroupConfirmed } from '@/lib/materialCategories';
 
 // Sections grouped by the same real line_items PackageScreen shows (see
 // lib/materialCategories.js) — item names here match Material List exactly,
@@ -98,7 +98,7 @@ export default function FFEScreen({ deliverable, confirmed = [], onBack, onConti
   }
 
   const total = FFE.length;
-  const done = FFE.filter(g => confirmed.includes(g.id)).length;
+  const done = FFE.filter(g => isGroupConfirmed(g.items.map(it => it.item_id), confirmed)).length;
   const pct = Math.round(done / total * 100);
 
   const headline = done === 0
@@ -137,7 +137,7 @@ export default function FFEScreen({ deliverable, confirmed = [], onBack, onConti
             <FFEGroup
               key={g.id}
               g={g}
-              confirmedSection={confirmed.includes(g.id)}
+              confirmedSection={isGroupConfirmed(g.items.map(it => it.item_id), confirmed)}
               open={open === g.id}
               onToggle={() => setOpen(open === g.id ? null : g.id)}
             />

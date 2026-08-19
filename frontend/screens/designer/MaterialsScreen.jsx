@@ -204,7 +204,7 @@ export default function MaterialsScreen({ project, materials = [], loading, erro
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'rgba(247,242,234,0.42)' }}>FF&E total</div>
           <div style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'rgba(247,242,234,0.97)', letterSpacing: '-0.015em' }}>${totalFFE.toLocaleString()}</div>
         </div>
-        {/* Genuinely disabled — no PDF/export backend exists for this demo,
+        {/* Genuinely disabled — no share backend exists for this demo,
             so this must not look like a working control. */}
         <button
           disabled
@@ -215,8 +215,8 @@ export default function MaterialsScreen({ project, materials = [], loading, erro
             display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 600,
           }}
         >
-          <Icon name="download" size={16} stroke={2} color="rgba(247,242,234,0.32)" />
-          Export
+          <Icon name="share" size={16} stroke={2} color="rgba(247,242,234,0.32)" />
+          Share
         </button>
       </div>
 

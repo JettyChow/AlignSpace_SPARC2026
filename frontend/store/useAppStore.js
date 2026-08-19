@@ -85,6 +85,13 @@ export const useAppStore = create(
             : [...s.confirmed, id],
         })),
 
+      // Confirm every given id at once (PackageScreen's "Confirm all").
+      // Unlike toggleConfirmed, this only ever adds — it unions `ids` into
+      // the existing confirmed list rather than flipping each one, so an
+      // already-confirmed id is left alone and repeat calls are a no-op.
+      confirmAll: (ids) =>
+        set((s) => ({ confirmed: Array.from(new Set([...s.confirmed, ...ids])) })),
+
       setIntakeAnswers: (answers) => set({ intakeAnswers: answers }),
       setBrief: (brief) => set({ brief }),
       setProfile: (profile) => set({ profile }),
@@ -129,6 +136,11 @@ export const useAppStore = create(
             // own), so pre-format it here.
             proj_budgetMaxOverride: ceiling != null ? `$${Math.round(ceiling).toLocaleString()}` : '—',
             proj_updatedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            // The actual inspiration/direction photo the client chose, when
+            // available (demo/kitchen flow today; real pipeline directions
+            // don't carry one yet — HistoryScreen falls back to a tone
+            // gradient when this is null/undefined).
+            proj_imageUrl: direction?.imageUrl ?? null,
             _local: true,
             _snapshot: { deliverable: s.deliverable, brief: s.brief, confirmed: s.confirmed },
           };

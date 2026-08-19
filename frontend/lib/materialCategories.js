@@ -57,6 +57,16 @@ export function groupLineItems(lineItems = []) {
   })).filter((g) => g.items.length > 0);
 }
 
+// The store's `confirmed` array holds individual category ids (e.g.
+// "cabinet"), not group ids — PackageScreen confirms one category at a time
+// ("Looks good to me") or all of them at once ("All good"). A group-level
+// screen (FFEScreen's decision tracker, SummaryScreen) counts as confirmed
+// once every category id in it has been individually confirmed, rather than
+// checking for the group id itself in `confirmed`.
+export function isGroupConfirmed(categoryIds, confirmed) {
+  return categoryIds.length > 0 && categoryIds.every((id) => confirmed.includes(id));
+}
+
 // "$220" for flat items, "$9/sqft" for tile priced per square foot.
 export function formatUnitPrice(item) {
   if (!item) return '';

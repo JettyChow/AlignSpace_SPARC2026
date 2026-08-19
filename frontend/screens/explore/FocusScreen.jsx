@@ -1,37 +1,131 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useLayoutEffect } from 'react';
 import { PrimaryButton } from '@/components/Buttons';
 import RoundIconButton from '@/components/frame/RoundIconButton';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
+import { CATEGORIES } from '@/data/warmMinimalKitchen';
+import { categoryMeta } from '@/lib/materialCategories';
 
-// Placeholder ITEMS tagged in the scene photo — item_name/item_id mirror the
-// DBML schema; id/icon/tone/x/y/dx/dy/colors are UI-only positioning and
-// swatch chrome for the pinned-tag layout, not DB columns. `count` is
-// display copy for "N similar items", not a schema field either.
-const SCENE_TAGS = [
-  { id: 'sofa',  item_id: 201, item_name: 'Linen sofa',     count: '24 similar', icon: 'sofa',    tone: 'linen',      x: 64, y: 52, dx: -58, dy: -20, colors: ['#D8C5A9', '#C4B394', '#9a8f7e', '#5F554C'] },
-  { id: 'floor', item_id: 202, item_name: 'White oak floor', count: '12 similar', icon: 'layers',  tone: 'oak',        x: 25, y: 63, dx: 6,   dy: -42, colors: ['#d8b888', '#b88e5c', '#9a6f42'] },
-  { id: 'wall',  item_id: 203, item_name: 'Travertine wall', count: '8 similar',  icon: 'hexagon', tone: 'travertine', x: 19, y: 30, dx: 14,  dy: -2,  colors: ['#ece0cc', '#d4c0a0', '#b69f78'] },
-  { id: 'drape', item_id: 204, item_name: 'Sheer drapery',   count: '10 similar', icon: 'tile',    tone: 'warmwhite',  x: 89, y: 25, dx: -54, dy: 4,   colors: ['#f7f1e7', '#e8ddca', '#d2c3a6'] },
-];
+// The 4 categories this screen highlights, in priority order — pulled from
+// the same warmMinimalKitchen.js CATEGORIES/line_items that PackageScreen's
+// material list reads, so "Tagged in this scene" and "Review the material
+// list" always show the same real products.
+const FOCUS_CATEGORIES = ['cabinet', 'countertop', 'backsplash', 'faucet'];
+
+// Hotspot pill labels stay category-oriented and fixed, independent of
+// which pick (primary/alternate) is currently selected — Switching on a
+// card can change the live product_name (e.g. "Travertine Countertop" ->
+// "Warm Marble Countertop"), and a hotspot label that changed length or
+// wording on every switch would feel unstable pinned over the photo. The
+// card underneath always shows the exact live product_name instead.
+const SHORT_LABEL = {
+  cabinet: 'Cabinet Door',
+  countertop: 'Countertop',
+  backsplash: 'Backsplash',
+  faucet: 'Faucet',
+};
+
+// Manually-placed hotspot centers (x/y, % of image) for each of the 6 real
+// Warm Minimal inspiration photos (data/warmMinimalKitchen.js INSPIRATIONS).
+// The photos differ enough in camera angle and layout that one universal
+// position would mis-point the cabinet/countertop/backsplash/faucet dots on
+// several of them, so each direction key gets its own set. One {x,y} per
+// FOCUS_CATEGORIES entry, same order: [cabinet, countertop, backsplash,
+// faucet]. Which way each pill opens, and keeping it on-screen, is NOT part
+// of this map — SceneTag derives that at render time from x and the pill's
+// real measured width, so it stays correct regardless of label length
+// instead of needing 6 more hand-tuned offsets per direction.
+const HOTSPOTS_BY_DIRECTION = {
+  warm_minimal_01: [{ x: 14, y: 35 }, { x: 50, y: 63 }, { x: 37, y: 49 }, { x: 63, y: 56 }],
+  warm_minimal_02: [{ x: 40, y: 35 }, { x: 22, y: 75 }, { x: 72, y: 38 }, { x: 60, y: 59 }],
+  warm_minimal_03: [{ x: 40, y: 30 }, { x: 55, y: 80 }, { x: 45, y: 52 }, { x: 48, y: 60 }],
+  warm_minimal_04: [{ x: 75, y: 28 }, { x: 42, y: 62 }, { x: 75, y: 50 }, { x: 37, y: 54 }],
+  warm_minimal_05: [{ x: 12, y: 33 }, { x: 50, y: 76 }, { x: 50, y: 42 }, { x: 48, y: 58 }],
+  warm_minimal_06: [{ x: 25, y: 28 }, { x: 55, y: 76 }, { x: 40, y: 52 }, { x: 22, y: 53 }],
+};
+const DEFAULT_DIRECTION_KEY = 'warm_minimal_01';
+
+// Small vertical stagger per hotspot slot (cabinet/countertop/backsplash/
+// faucet) so the 4 pills don't stack when their dots land close together.
+const DY_BY_SLOT = [-26, 26, -6, 14];
+
+// Builds the 4 scene tags for a given direction. Live product data (name,
+// image) comes from `lineItems` — deliverable.package.line_items, the same
+// store-backed source PackageScreen reads — so a Switch tap here is
+// reflected immediately and survives the trip to /package. CATEGORIES is
+// only a fallback for the rare case FocusScreen renders before a deliverable
+// exists (e.g. direct nav) — never a second source of truth once lineItems
+// is present.
+function buildSceneTags(directionKey, lineItems) {
+  const coords = HOTSPOTS_BY_DIRECTION[directionKey] || HOTSPOTS_BY_DIRECTION[DEFAULT_DIRECTION_KEY];
+  return FOCUS_CATEGORIES.map((category, i) => {
+    const li = lineItems?.find((l) => l.category === category);
+    const fallback = CATEGORIES.find((c) => c.category === category)?.primary;
+    const meta = categoryMeta(category);
+    const { x, y } = coords[i];
+    return {
+      id: category,
+      category,
+      item_name: SHORT_LABEL[category] || meta.label,
+      full_name: li?.product_name || fallback?.product_name,
+      imageUrl: li?.imageUrl || fallback?.imageUrl,
+      canSwitch: Boolean(li?.alternate),
+      count: '2 options',
+      icon: meta.icon,
+      tone: meta.tone,
+      x, y, dy: DY_BY_SLOT[i],
+    };
+  });
+}
+
+// Fallback scene width (px) for the very first layout pass, before
+// FocusScreen measures its actual box — matches PhoneFrame's fixed content
+// area (components/frame/PhoneFrame.jsx: 390px frame, 11px padding/side).
+const DEFAULT_SCENE_WIDTH = 368;
+// Keep every pill fully inside the screen, this far from either edge...
+const PILL_SAFE_MARGIN = 16;
+// ...and, room permitting, this far from the dot it's labeling.
+const PILL_DOT_GAP = 14;
 
 const CARD_STEP = 298;
 
-function ColorDots({ colors }) {
-  return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {colors.map((c, i) => (
-        <span key={i} style={{ width: 13, height: 13, borderRadius: '50%', background: c, display: 'inline-block', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.35), 0 1px 2px rgba(0,0,0,0.3)' }} />
-      ))}
-    </div>
-  );
-}
+function SceneTag({ t, active, onClick, containerWidth }) {
+  const pillRef = useRef(null);
+  const [pillWidth, setPillWidth] = useState(0);
 
-function SceneTag({ t, active, onClick }) {
-  const dist = Math.hypot(t.dx, t.dy);
-  const angle = Math.atan2(t.dy, t.dx) * 180 / Math.PI;
+  // Measure the pill's real rendered width (it varies with label length) so
+  // the clamp below is exact instead of guessed — runs before paint, so a
+  // width change (e.g. switching direction) never flashes an unclamped pill.
+  useLayoutEffect(() => {
+    if (pillRef.current) setPillWidth(pillRef.current.offsetWidth);
+  });
+
+  const dotX = (t.x / 100) * containerWidth;
+  const openLeft = dotX > containerWidth / 2; // prefer opening toward screen center
+
+  // Bounded label-position calculation: start from the preferred gap next
+  // to the dot, opening toward the center, then clamp the pill's own box to
+  // stay fully within [PILL_SAFE_MARGIN, containerWidth - PILL_SAFE_MARGIN]
+  // regardless of label width or where the dot sits. This is what keeps
+  // every pill on-screen across all 6 directions without per-tag offsets.
+  const desiredLeft = openLeft ? dotX - PILL_DOT_GAP - pillWidth : dotX + PILL_DOT_GAP;
+  const minLeft = PILL_SAFE_MARGIN;
+  const maxLeft = Math.max(minLeft, containerWidth - PILL_SAFE_MARGIN - pillWidth);
+  const pillLeft = Math.min(Math.max(desiredLeft, minLeft), maxLeft);
+  const pillDx = pillLeft - dotX; // pill's left edge, relative to the dot
+
+  // Connector line still points from the dot to the pill's nearest edge —
+  // if clamping pulled the pill so it now straddles the dot horizontally,
+  // fall back to a short vertical stub into the pill instead of a line that
+  // overshoots past it.
+  const nearEdgeDx = dotX < pillLeft ? pillDx
+    : dotX > pillLeft + pillWidth ? pillDx + pillWidth
+    : 0;
+  const dist = Math.hypot(nearEdgeDx, t.dy);
+  const angle = Math.atan2(t.dy, nearEdgeDx) * 180 / Math.PI;
+
   return (
     <div style={{ position: 'absolute', left: `${t.x}%`, top: `${t.y}%`, zIndex: active ? 7 : 6 }}>
       {/* connector line */}
@@ -39,9 +133,9 @@ function SceneTag({ t, active, onClick }) {
       {/* dot */}
       <div style={{ position: 'absolute', left: -5, top: -5, width: 10, height: 10, borderRadius: '50%', background: 'var(--champagne)', boxShadow: '0 0 0 4px rgba(244,233,207,0.22), 0 0 12px rgba(198,163,107,0.85)' }} />
       {/* pill button */}
-      <button onClick={onClick} style={{
-        position: 'absolute', left: t.dx, top: t.dy,
-        transform: `translate(${t.dx < 0 ? '-100%' : '0'}, -50%)`,
+      <button ref={pillRef} onClick={onClick} style={{
+        position: 'absolute', left: pillDx, top: t.dy,
+        transform: 'translateY(-50%)',
         display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap', cursor: 'pointer',
         height: 38, padding: '0 14px 0 7px', borderRadius: 999,
         background: active ? 'rgba(247,243,236,0.94)' : 'rgba(20,16,12,0.44)',
@@ -60,12 +154,28 @@ function SceneTag({ t, active, onClick }) {
   );
 }
 
-export default function FocusScreen({ deliverable, onBack, onContinue, onMenu }) {
+export default function FocusScreen({ deliverable, onBack, onContinue, onMenu, onSwitchCategory }) {
   const direction = deliverable?.chosen_direction;
   const matchPercent = direction ? Math.round((direction.match_score || 0) * 100) : null;
   const [saved, setSaved] = useState(false);
   const [active, setActive] = useState(0);
   const scrollRef = useRef(null);
+  const sceneRef = useRef(null);
+  const [sceneWidth, setSceneWidth] = useState(DEFAULT_SCENE_WIDTH);
+  const lineItems = deliverable?.package?.line_items;
+  const SCENE_TAGS = useMemo(() => buildSceneTags(direction?.key, lineItems), [direction?.key, lineItems]);
+
+  // Real width of the scene image box — used to clamp hotspot pills to the
+  // visible screen. PhoneFrame is fixed-width today, but this stays correct
+  // if that ever changes (e.g. a wider viewport) instead of assuming 390px.
+  useLayoutEffect(() => {
+    function measure() {
+      if (sceneRef.current) setSceneWidth(sceneRef.current.clientWidth);
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   function focusCard(i) {
     setActive(i);
@@ -79,7 +189,7 @@ export default function FocusScreen({ deliverable, onBack, onContinue, onMenu })
   }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+    <div ref={sceneRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       {/* full-bleed scene image — the chosen direction's real photo when available */}
       <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${direction?.imageUrl || '/assets/scene-interior.png'})`, backgroundSize: 'cover', backgroundPosition: '58% 46%' }} />
       {/* gradient overlay */}
@@ -108,7 +218,7 @@ export default function FocusScreen({ deliverable, onBack, onContinue, onMenu })
 
       {/* pinned scene tags with SVG connector lines */}
       {SCENE_TAGS.map((t, i) => (
-        <SceneTag key={t.id} t={t} active={active === i} onClick={() => focusCard(i)} />
+        <SceneTag key={t.id} t={t} active={active === i} onClick={() => focusCard(i)} containerWidth={sceneWidth} />
       ))}
 
       {/* bottom sheet */}
@@ -121,23 +231,40 @@ export default function FocusScreen({ deliverable, onBack, onContinue, onMenu })
         {/* horizontally scrollable cards */}
         <div ref={scrollRef} onScroll={onScroll} style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 18px', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
           {SCENE_TAGS.map((t, i) => (
-            <button key={t.id} onClick={() => focusCard(i)} style={{
-              scrollSnapAlign: 'center', flex: 'none', width: 286, textAlign: 'left', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 14, padding: 12, borderRadius: 22,
-              background: active === i ? 'rgba(40,33,25,0.66)' : 'rgba(24,20,15,0.5)',
-              border: active === i ? '1px solid rgba(220,192,147,0.55)' : '1px solid rgba(255,255,255,0.14)',
-              backdropFilter: 'blur(26px) saturate(160%)', WebkitBackdropFilter: 'blur(26px) saturate(160%)',
-              boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
-              transition: 'border-color var(--dur-base), background var(--dur-base)',
-            }}>
-              <PhotoTile tone={t.tone} height={64} radius={16} style={{ width: 64, flex: 'none' }} />
+            <div
+              key={t.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => focusCard(i)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusCard(i); } }}
+              style={{
+                scrollSnapAlign: 'center', flex: 'none', width: 286, textAlign: 'left', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 14, padding: 12, borderRadius: 22,
+                background: active === i ? 'rgba(40,33,25,0.66)' : 'rgba(24,20,15,0.5)',
+                border: active === i ? '1px solid rgba(220,192,147,0.55)' : '1px solid rgba(255,255,255,0.14)',
+                backdropFilter: 'blur(26px) saturate(160%)', WebkitBackdropFilter: 'blur(26px) saturate(160%)',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+                transition: 'border-color var(--dur-base), background var(--dur-base)',
+              }}>
+              <PhotoTile tone={t.tone} imageUrl={t.imageUrl} height={64} radius={16} style={{ width: 64, flex: 'none' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{t.item_name}</div>
-                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: 'var(--champagne)', margin: '2px 0 8px' }}>{t.count} models</div>
-                <ColorDots colors={t.colors} />
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>{t.full_name}</div>
+                <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: 600, color: 'var(--champagne)', margin: '2px 0 8px' }}>{t.count}</div>
+                {t.canSwitch && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onSwitchCategory && onSwitchCategory(t.category); }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+                      height: 26, padding: '0 10px 0 8px', borderRadius: 999,
+                      background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.24)',
+                      fontFamily: 'var(--font-sans)', fontSize: 11.5, fontWeight: 600, color: '#fff',
+                    }}>
+                    <Icon name="swap" size={12} color="#fff" stroke={2} /> Switch
+                  </button>
+                )}
               </div>
               <Icon name="chevronRight" size={18} color="rgba(255,255,255,0.5)" stroke={2} />
-            </button>
+            </div>
           ))}
         </div>
 

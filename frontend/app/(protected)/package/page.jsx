@@ -9,6 +9,7 @@ export default function PackagePage() {
   const deliverable = useAppStore((s) => s.deliverable);
   const confirmed = useAppStore((s) => s.confirmed);
   const toggleConfirmed = useAppStore((s) => s.toggleConfirmed);
+  const confirmAll = useAppStore((s) => s.confirmAll);
   const { go, back } = useNavigation();
 
   // No deliverable in the store means a direction hasn't been assembled yet
@@ -24,6 +25,7 @@ export default function PackagePage() {
       deliverable={deliverable}
       confirmed={confirmed}
       onConfirm={toggleConfirmed}
+      onConfirmAll={confirmAll}
       onBack={back}
       onContinue={() => go('/ffe')}
       onMenu={() => go('/history')}

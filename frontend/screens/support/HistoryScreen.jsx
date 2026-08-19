@@ -41,7 +41,7 @@ export default function HistoryScreen({ onBack, onOpen, projects = [], loading, 
               width: '100%', display: 'flex', alignItems: 'center', gap: 0, borderRadius: 20, overflow: 'hidden',
               border: '1px solid rgba(255,255,255,0.09)', background: 'rgba(255,255,255,0.03)', cursor: 'pointer', marginBottom: 10, textAlign: 'left',
             }}>
-              <PhotoTile tone={tone} style={{ width: 76, height: 82, borderRadius: 0, flexShrink: 0 }} />
+              <PhotoTile tone={tone} imageUrl={p.proj_imageUrl} style={{ width: 76, height: 82, borderRadius: 0, flexShrink: 0 }} />
               <div style={{ flex: 1, padding: '12px 14px', minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: 600, color: 'rgba(247,242,234,0.95)', marginBottom: 2 }}>{p.proj_title}</div>
                 <div style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'rgba(247,242,234,0.42)', marginBottom: 8 }}>{p.proj_updatedAt} · {p.proj_status}</div>

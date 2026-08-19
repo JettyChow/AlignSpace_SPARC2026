@@ -5,7 +5,7 @@ import AppBar from '@/components/frame/AppBar';
 import { PrimaryButton, GlassButton } from '@/components/Buttons';
 import PhotoTile from '@/components/PhotoTile';
 import Icon from '@/components/Icon';
-import { GROUP_LABELS, groupLineItems } from '@/lib/materialCategories';
+import { GROUP_LABELS, groupLineItems, isGroupConfirmed } from '@/lib/materialCategories';
 
 export default function SummaryScreen({ deliverable, roomType, role, confirmed = [], onBack, onHandoff, onMenu, readOnly = false }) {
   const direction = deliverable?.chosen_direction;
@@ -14,11 +14,14 @@ export default function SummaryScreen({ deliverable, roomType, role, confirmed =
 
   const grouped = groupLineItems(pkg?.line_items ?? []);
   const presentGroups = grouped.map((g) => g.id);
-  const confirmedCount = presentGroups.filter((g) => confirmed.includes(g)).length;
+  // A group is confirmed once every category id within it has been
+  // individually confirmed (confirmed holds category ids, not group ids —
+  // see PackageScreen's "Looks good to me"/"All good").
+  const confirmedCount = grouped.filter((g) => isGroupConfirmed(g.items.map((li) => li.category), confirmed)).length;
   const completionPercent = presentGroups.length
     ? Math.round((confirmedCount / presentGroups.length) * 100)
     : 0;
-  const outstandingGroups = grouped.filter((g) => !confirmed.includes(g.id));
+  const outstandingGroups = grouped.filter((g) => !isGroupConfirmed(g.items.map((li) => li.category), confirmed));
 
   const roomTypeLabel = roomType
     ? roomType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())

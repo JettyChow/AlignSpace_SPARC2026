@@ -10,8 +10,9 @@ import { categoryMeta, formatQuantity, formatUnitPrice, tierLabel } from '@/lib/
 // Builds one tab per real category in the deliverable's MaterialPackage
 // (as-ai-server's assembly agent picks exactly one product per catalog
 // category — see as-ai-server/src/pipeline/agents/assembly.py). `group` is
-// the broad Materials/Fixtures/Lighting bucket used for the confirm button
-// and shared with FFEScreen's decision-tracker sections.
+// the broad Materials/Fixtures/Lighting bucket FFEScreen/SummaryScreen's
+// decision-tracker sections use — PackageScreen's own confirm button below
+// confirms by individual category id (c.id), not by group.
 function buildCategoryData(deliverable) {
   const lineItems = deliverable?.package?.line_items ?? [];
   const swapsByCategory = new Map(
@@ -174,7 +175,7 @@ function MaterialRow({ it, onDelete, onSwitch }) {
   );
 }
 
-export default function PackageScreen({ deliverable, onBack, onContinue, onMenu, confirmed = [], onConfirm }) {
+export default function PackageScreen({ deliverable, onBack, onContinue, onMenu, confirmed = [], onConfirm, onConfirmAll }) {
   const built = useMemo(() => buildCategoryData(deliverable), [deliverable]);
   const { cats: CATS } = built;
   const [activeCat, setActiveCat] = useState(() => CATS[0]?.id);
@@ -215,8 +216,18 @@ export default function PackageScreen({ deliverable, onBack, onContinue, onMenu,
   const totalSel = Object.values(data).reduce((a, l) => a + Math.max(0, l.length - 1), 0);
   const activeCatEntry = CATS.find(c => c.id === activeCat);
   const activeCatLabel = activeCatEntry?.label ?? '';
-  const activeCatGroup = activeCatEntry?.group;
-  const isOn = confirmed.includes(activeCatGroup);
+  // `confirmed` holds individual category ids (e.g. "cabinet"), not group
+  // ids — confirming Cabinet must not also confirm Countertop/Backsplash
+  // just because they share the "materials" group. (This used to key off
+  // activeCatEntry.group instead of activeCat, which was the bug: every
+  // category sharing a group showed confirmed the moment any one of them
+  // was, since they all satisfied the same confirmed.includes(group) check.)
+  const isOn = confirmed.includes(activeCat);
+
+  // Every real category in this package, derived from the actual line
+  // items (not a hardcoded list) — what "All good" confirms in one action.
+  const allCats = CATS.map(c => c.id);
+  const allConfirmed = allCats.length > 0 && allCats.every(id => confirmed.includes(id));
 
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', background: 'var(--warm-ivory)' }}>
@@ -240,7 +251,7 @@ export default function PackageScreen({ deliverable, onBack, onContinue, onMenu,
       <div style={{ position: 'absolute', top: 200, left: 0, right: 0, zIndex: 12, display: 'flex', gap: 8, overflowX: 'auto', padding: '0 20px 4px', scrollSnapType: 'x proximity' }}>
         {CATS.map(c => {
           const on = activeCat === c.id;
-          const ok = confirmed.includes(c.group);
+          const ok = confirmed.includes(c.id);
           const count = Math.max(0, data[c.id].length - 1);
           return (
             <button key={c.id} onClick={() => setActiveCat(c.id)} style={{
@@ -303,10 +314,10 @@ export default function PackageScreen({ deliverable, onBack, onContinue, onMenu,
         )}
       </div>
 
-      {/* footer — confirm toggle + continue */}
+      {/* footer — confirm toggle + confirm all + continue */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '18px 20px 26px', zIndex: 20, display: 'flex', flexDirection: 'column', gap: 10, background: 'linear-gradient(180deg, rgba(247,243,236,0), rgba(247,243,236,0.86) 30%, var(--warm-ivory) 60%)' }}>
         <button
-          onClick={() => onConfirm && onConfirm(activeCatGroup)}
+          onClick={() => onConfirm && onConfirm(activeCat)}
           style={{
             width: '100%', height: 50, borderRadius: 'var(--r-button)', cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -323,6 +334,26 @@ export default function PackageScreen({ deliverable, onBack, onContinue, onMenu,
         >
           <Icon name={isOn ? 'checkCircle' : 'check'} size={19} stroke={2.2} color={isOn ? 'var(--success)' : 'var(--champagne-deep)'} />
           {isOn ? `${activeCatLabel} confirmed` : 'Looks good to me'}
+        </button>
+        <button
+          onClick={() => !allConfirmed && onConfirmAll && onConfirmAll(allCats)}
+          disabled={allConfirmed}
+          style={{
+            width: '100%', height: 50, borderRadius: 'var(--r-button)', cursor: allConfirmed ? 'default' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            fontFamily: 'var(--font-sans)', fontSize: 15.5, fontWeight: 600,
+            transition: 'all var(--dur-base) var(--ease-soft)',
+            ...(allConfirmed ? {
+              background: 'rgba(122,185,107,0.16)', color: '#4e8c40',
+              border: '1px solid rgba(122,185,107,0.5)', boxShadow: 'none',
+            } : {
+              background: '#FAF4E9', color: 'var(--champagne-deep)',
+              border: '1px solid rgba(198,163,107,0.45)', boxShadow: '0 4px 16px rgba(95,85,76,0.08)',
+            }),
+          }}
+        >
+          <Icon name={allConfirmed ? 'checkCircle' : 'check'} size={19} stroke={2.2} color={allConfirmed ? 'var(--success)' : 'var(--champagne-deep)'} />
+          {allConfirmed ? 'All confirmed' : 'All good'}
         </button>
         <PrimaryButton onClick={onContinue} style={{ height: 52, fontSize: 16 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
