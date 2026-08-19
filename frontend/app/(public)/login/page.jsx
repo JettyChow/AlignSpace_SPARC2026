@@ -70,6 +70,10 @@ export default function LoginPage() {
         await setActive({ session: result.createdSessionId });
         // Navigation happens in the effect above once `user` reflects the
         // newly active session.
+      } else if (result.status === 'needs_second_factor') {
+        // Two-step verification isn't supported in this MVP/demo — surface
+        // a readable message instead of a raw status string or a code form.
+        setError('This account requires two-step verification, which isn’t supported yet. Please contact support or use an account without it enabled.');
       } else {
         // TEMPORARY DIAGNOSTIC — remove once the production non-complete
         // status is identified. Logs only status enums, never credentials,
