@@ -15,6 +15,14 @@ export default function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  // Email-code second factor — entered when signIn.create() comes back with
+  // status 'needs_second_factor' and Clerk's only supported second factor
+  // for this account is 'email_code' (confirmed via the sign_in_attempt
+  // response; this app doesn't support TOTP/SMS/backup codes).
+  const [needsSecondFactor, setNeedsSecondFactor] = useState(false);
+  const [secondFactorEmail, setSecondFactorEmail] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState(null);
   // Only route automatically once *this* screen just completed a login —
   // an already-active Clerk session from a previous visit should not skip
   // the login page when the user lands here intentionally (e.g. via the
@@ -71,9 +79,14 @@ export default function LoginPage() {
         // Navigation happens in the effect above once `user` reflects the
         // newly active session.
       } else if (result.status === 'needs_second_factor') {
-        // Two-step verification isn't supported in this MVP/demo — surface
-        // a readable message instead of a raw status string or a code form.
-        setError('This account requires two-step verification, which isn’t supported yet. Please contact support or use an account without it enabled.');
+        const emailFactor = result.supportedSecondFactors?.find((f) => f.strategy === 'email_code');
+        if (!emailFactor) {
+          setError('This account requires a verification step that isn’t supported here yet.');
+        } else {
+          await signIn.prepareSecondFactor({ strategy: 'email_code', emailAddressId: emailFactor.emailAddressId });
+          setSecondFactorEmail(emailFactor.safeIdentifier || email);
+          setNeedsSecondFactor(true);
+        }
       } else {
         // TEMPORARY DIAGNOSTIC — remove once the production non-complete
         // status is identified. Logs only status enums, never credentials,
@@ -93,6 +106,38 @@ export default function LoginPage() {
     }
   }
 
+  async function handleVerifySecondFactor(code) {
+    if (!isLoaded || verifying) return;
+    setVerifyError(null);
+
+    if (!code || !code.trim()) {
+      setVerifyError('Enter your verification code.');
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const result = await signIn.attemptSecondFactor({ strategy: 'email_code', code: code.trim() });
+      if (result.status === 'complete') {
+        justLoggedIn.current = true;
+        await setActive({ session: result.createdSessionId });
+        // Navigation happens in the effect above, same as the primary flow.
+      } else {
+        setVerifyError('That code did not work. Please try again.');
+      }
+    } catch (err) {
+      setVerifyError(err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || 'Could not verify that code.');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  function handleCancelSecondFactor() {
+    setNeedsSecondFactor(false);
+    setSecondFactorEmail('');
+    setVerifyError(null);
+  }
+
   return (
     <LoginScreen
       role={role}
@@ -102,6 +147,12 @@ export default function LoginPage() {
       onForgotPassword={() => go('/forgot-password')}
       loading={loading}
       error={error}
+      needsSecondFactor={needsSecondFactor}
+      secondFactorEmail={secondFactorEmail}
+      onVerifySecondFactor={handleVerifySecondFactor}
+      onCancelSecondFactor={handleCancelSecondFactor}
+      verifying={verifying}
+      verifyError={verifyError}
     />
   );
 }

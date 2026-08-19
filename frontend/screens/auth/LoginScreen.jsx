@@ -8,10 +8,48 @@ import { PrimaryButton } from '@/components/Buttons';
 import Field from '@/components/Field';
 import Icon from '@/components/Icon';
 
-export default function LoginScreen({ role, onLogin, onBack, onSignup, onForgotPassword, loading, error }) {
+export default function LoginScreen({
+  role, onLogin, onBack, onSignup, onForgotPassword, loading, error,
+  needsSecondFactor, secondFactorEmail, onVerifySecondFactor, onCancelSecondFactor, verifying, verifyError,
+}) {
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [show, setShow] = useState(false);
+  const [code, setCode] = useState('');
+
+  if (needsSecondFactor) {
+    return (
+      <DarkScene>
+        <div style={{ position: 'absolute', inset: 0, padding: '70px 24px 30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+            <button onClick={onCancelSecondFactor} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginRight: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="chevron-left" size={20} color="rgba(255,255,255,0.7)" stroke={2} />
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>Back</span>
+            </button>
+          </div>
+          <Logo markSize={46} wordSize={15} />
+          <div className="lg lg-drift" style={{
+            width: '100%', marginTop: 22, padding: '28px 24px 26px', boxSizing: 'border-box',
+            borderRadius: 32, border: '1px solid rgba(255,255,255,0.16)',
+            '--lg-tint': 'linear-gradient(155deg, rgba(34,27,20,0.34), rgba(14,11,8,0.46))',
+            '--lg-blur': '10px', '--lg-sheen': 0.28, '--lg-bright': 1.0,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), inset 1px 1px 1px rgba(255,255,255,0.12), 0 22px 58px rgba(0,0,0,0.36)',
+          }}>
+            <h1 style={{ fontFamily: 'var(--font-sans)', fontSize: 27, fontWeight: 600, color: '#fff', margin: 0, lineHeight: 1.15, letterSpacing: '-0.015em' }}>Check your email</h1>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 15, lineHeight: 1.5, color: 'rgba(255,255,255,0.66)', margin: '8px 0 26px' }}>We sent a verification code to {secondFactorEmail || 'your email'}.</p>
+            <Field label="Verification code" icon="lock" placeholder="Enter the code" value={code} onChange={(e) => setCode(e.target.value)} />
+            {verifyError && (
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 13, color: '#e08787', marginTop: -12, marginBottom: 18 }}>{verifyError}</div>
+            )}
+            <PrimaryButton onClick={() => onVerifySecondFactor?.(code)} style={{ marginTop: 4, opacity: verifying ? 0.7 : 1 }}>
+              {verifying ? 'Verifying…' : 'Verify & continue'}
+            </PrimaryButton>
+          </div>
+        </div>
+      </DarkScene>
+    );
+  }
+
   const features = [
     { icon: 'layers', label: 'Structured\nDecisions', gold: false },
     { icon: 'dollar', label: 'Budget\nAware', gold: false },
